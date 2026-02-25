@@ -1,0 +1,68 @@
+project: fishsim
+entity: srl_ethz
+
+method: bayes
+metric:
+  name: reward_mean
+  goal: maximize
+run_cap: 10000
+
+parameters:
+  env:
+    value: fish_target_relative-v0
+
+  nSteps:
+    value: 3_000_000
+
+  maxEpisodeSteps:
+    value: 500
+
+  policy:
+    value: SAC
+
+  learningRate:
+    distribution: uniform
+    min: 0.00001
+    max: 0.01
+
+  batchSize:
+    value: 256
+
+  motorVelRange:
+    value: 1
+
+  actionMultiplier:
+    distribution: uniform
+    min: 50.0
+    max: 500.0
+
+  rewardFailure:
+    value: -1
+
+  hiddenDim:
+    distribution: int_uniform
+    min: 32
+    max: 2048
+
+  numLayers:
+    distribution: int_uniform
+    min: 2
+    max: 6
+
+  # SAC
+  gamma:
+    distribution: uniform
+    min: 0.9
+    max: 0.9999
+  train_freq:
+    distribution: int_uniform
+    min: 1
+    max: 1000
+  learningStarts:
+    distribution: int_uniform
+    min: 10000
+    max: 1000000
+  tau:
+    distribution: uniform
+    min: 0.0
+    max: 1.0
