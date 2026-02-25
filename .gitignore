@@ -1,0 +1,8 @@
+*.png
+*.mp4
+*.pyc
+*.pdf
+*.xml
+
+wandb/*
+Outputs/*
