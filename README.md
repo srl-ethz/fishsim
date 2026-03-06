@@ -1,6 +1,6 @@
 # Underwater Robot Fish Simulation in MuJoCo
 
-Just creating fish.
+Just creating fish. [Website](https://srl-ethz.github.io/website_fishsim/). [Paper](http://arxiv.org/abs/2602.23283).
 
 
 ## Geometry
