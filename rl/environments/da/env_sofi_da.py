@@ -26,7 +26,7 @@ Motor model (re-identified 2026-06-13, fluidID/scripts/23_motor_id.py):
     The action LPF and gear-compliance EMA were REMOVED — both double-counted the
     velocity saturation the MuJoCo position actuator already models. Bandwidth is now
     set purely by the identified actuator (kp=4.09, kv=0.340, armature=0.0044,
-    forcerange ±2.3 in geometry/auto_SOFI_da.py), and the only software addition is a
+    forcerange ±2.3 in geometry/sofi_motorid.py), and the only software addition is a
     pure transport delay (motor_deadtime_steps ≈28 ms; cmd→meas lag ~73 ms RL / ~60 ms
     field, delay-vs-pole ambiguous → DR'd 20–40 ms), applied as a substep-level ring
     buffer on the setpoint. Motor history stores the

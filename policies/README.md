@@ -10,6 +10,6 @@ Stable-Baselines3 SAC checkpoints (`SAC.load(path)`, SB3 2.6.0, torch 2.6.0), tr
 | `sofi_da_fof_rl_policy.zip` | `c56d55259cd8a335f43e5bcfb65228de` | direct action behind a first-order 4.5 Hz setpoint filter ("DA-FOF") | 40-D with motor history | `sofi_full_curriculum_da` with `--lpf_cutoff_hz 4.5`, sweep `sweep_da_fof.yml`, run `o4whyrwa`, stage 8 | Simulation only. The filter removes the exploit; its gait is the third trace of Fig. 10 |
 
 The paper calls the CPG policy the trajectory generator (TG). It was trained with the E13a fluid set and the
-kp 800 motor model (`geometry/auto_SOFI_cpg.py`); the two direct-action policies with the refitB fluid set and
-the identified motor (`geometry/auto_SOFI_da.py`).
+kp 800 motor model (`geometry/sofi.py`); the two direct-action policies with the refitB fluid set and
+the identified motor (`geometry/sofi_motorid.py`).
 Retraining: `docs/TRAINING.md`. On the fish both run with stochastic inference.

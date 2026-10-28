@@ -449,57 +449,6 @@ def main():
     plt.savefig(os.path.join(PLOT_DIR, "s1_damping_decomposition.png"), dpi=150); plt.close()
     print(f"Saved: {os.path.join(PLOT_DIR, 's1_damping_decomposition.png')}")
 
-    # 7c. Per-joint stiffness and damping bar chart -> report figure (recipe, vector PDF)
-    import sys as _sys; _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "paper"))
-    from report_style import use_report_style as _urs, set_size as _ss, savefig as _sv, CB as _CB
-    _urs()
-    fig3, (ax_k, ax_c) = plt.subplots(1, 2, figsize=_ss(0.99, aspect=0.46), layout="constrained")
-    x = np.arange(5); w = 0.35
-    ax_k.bar(x - w/2, k_nom,    w, label="beam theory", alpha=0.9, color=_CB["blue"])
-    ax_k.bar(x + w/2, k_joints, w, label=r"calibrated ($k_\mathrm{eff}{=}%.2f$)" % k_eff, alpha=0.9, color=_CB["green"])
-    ax_k.axhline(0.65, color=_CB["orange"], ls="--", lw=1.2, label="old MuJoCo (0.65)")
-    ax_k.set_xticks(x); ax_k.set_xticklabels([f"j{i}" for i in range(5)])
-    ax_k.set_ylabel(r"hinge stiffness [N\,m/rad]"); ax_k.set_ylim(0, max(k_joints) * 1.35)
-    ax_k.legend(loc="upper right", framealpha=0.9); ax_k.grid(True, axis="y")
-    ax_c.bar(x, c_joints, 0.5, color=_CB["purple"], alpha=0.9, label=r"$c/k{=}%.3f$ s" % loss_ratio)
-    ax_c.axhline(0.10, color=_CB["orange"], ls="--", lw=1.2, label="old MuJoCo (0.10)")
-    ax_c.set_xticks(x); ax_c.set_xticklabels([f"j{i}" for i in range(5)])
-    ax_c.set_ylabel(r"hinge damping [N\,m\,s/rad]"); ax_c.set_ylim(0, 0.13)
-    ax_c.legend(loc="upper right", framealpha=0.9); ax_c.grid(True, axis="y")
-    _out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "paper", "out"); os.makedirs(_out, exist_ok=True)
-    print("Saved:", _sv(fig3, os.path.join(_out, "31_joint_stiffness_damping")))
-    
-    # Restore default style so we don't mess up later plots
-    plt.style.use('default')
-    
-    # 7d. Per-joint stiffness ONLY (presentation-only, disabled; report uses 7c)
-    for s in []:
-        plt.style.use(s["plt_style"])
-        fig4, ax_k_only = plt.subplots(figsize=(10, 4.5))
-        fig4.patch.set_facecolor(s["face"])
-        x = np.arange(5); w = 0.35
-        
-        ax_k_only.set_facecolor(s["face"])
-        ax_k_only.bar(x - w/2, k_nom,    w, label="Beam theory (E_nom=2.7 GPa)", alpha=0.75, color="C0" if s["mode"]=="light" else "#4C99D3")
-        ax_k_only.bar(x + w/2, k_joints, w, label=f"Calibrated k_eff={k_eff:.3f} Nm/rad", alpha=0.75, color="C2" if s["mode"]=="light" else "#5FBA7D")
-        ax_k_only.axhline(0.65, color="r", ls="--", lw=1.5, label="Old MuJoCo Value (0.65)")
-        ax_k_only.set_xticks(x); ax_k_only.set_xticklabels([f"j{i}" for i in range(5)], color=s["text"])
-        ax_k_only.tick_params(colors=s["text"])
-        ax_k_only.set_ylabel("hingeStiffness  [Nm/rad]", color=s["text"])
-        ax_k_only.set_title("Joint stiffness — beam theory vs. calibrated", color=s["text"])
-        ax_k_only.legend(fontsize=8, facecolor=s["face"], edgecolor=s["text"], labelcolor=s["text"])
-        ax_k_only.grid(True, alpha=0.2 if s["mode"]=="dark" else 0.3, axis="y", color=s["text"])
-        
-        plt.tight_layout()
-        for ext in s["exts"]:
-            out_path = os.path.join(PLOT_DIR, f"s1_joint_stiffnesses{ext}")
-            plt.savefig(out_path, dpi=300 if ext.endswith('.pdf') else 150)
-            print(f"Saved: {out_path}")
-        plt.close()
-        
-    plt.style.use('default')
-
-    # ------------------------------------------------------------------
     # 8. Full results summary
     # ------------------------------------------------------------------
     print("\n" + "=" * 70)
@@ -709,7 +658,7 @@ hingeDamping:   {np.round(c_joints, 4).tolist()}
 
 - Implement `step3_mujoco_validation.py`: fixed-head MuJoCo simulation with per-joint
   stiffness to verify the H(ω) response matches measurement.
-- Update `auto_SOFI_field2sim.py` to accept per-joint `hingeStiffness` list instead of
+- Update `sofi_twin.py` to accept per-joint `hingeStiffness` list instead of
   a single scalar.
 - Run fluid SysID E13 with corrected stiffness and tighter c_angular ceiling.
 """

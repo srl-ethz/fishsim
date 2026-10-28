@@ -6,7 +6,7 @@ name: sofi_da_rl_policy
 #  1. MOTOR: joint-damping back-EMF model (23_motor_id.py kv-free fit, 2026-06-19) —
 #     kp=5.41, kv=0, armature=0.0113, JOINT DAMPING b=0.48 (outside the actuator clip →
 #     hard velocity cap ~4.8 rad/s, was 11 rad/s uncapped). dead-time 14 ms (DR 8–18).
-#  2. FLUID: refitB_fwdonly coeffs in auto_SOFI.py — re-ID'd with an explicit backward-
+#  2. FLUID: refitB_fwdonly coeffs in sofi_motorid.py — re-ID'd with an explicit backward-
 #     swimming penalty (val_loss 0.164, best yet) → FORBIDS backward swimming (verified
 #     on 3 captured gaits; new motor × refitB = forward). Fixes the S01 backward exploit.
 # Motor DR (kp/kv/dead-time) recentred in env_sofi_full_curriculum_da; v_max DR'd
@@ -63,7 +63,7 @@ parameters:
     value: 0.60
 
   # ── Motor model ───────────────────────────────────────────────────────────
-  # kp/kv/armature/joint-damping come from the XML (auto_SOFI.py) + per-stage motor DR
+  # kp/kv/armature/joint-damping come from the XML (sofi_motorid.py) + per-stage motor DR
   # (kp/kv/dead-time/forcerange recentred in env_sofi_full_curriculum_da).
   # b (joint damping) + armature are XML-fixed (not DR'd). Dead-time nominal here; DR'd
   # 8–18 ms per-episode by the curriculum stages.

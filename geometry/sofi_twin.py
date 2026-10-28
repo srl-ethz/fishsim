@@ -15,7 +15,7 @@ import os
 import yaml
 
 SYSTEMPARAMETERS = {
-    "filename": "geometry/SOFI_field2sim.xml",
+    "filename": "geometry/SOFI_twin.xml",
 
     "dt": 0.001,
     "freeZ": False,

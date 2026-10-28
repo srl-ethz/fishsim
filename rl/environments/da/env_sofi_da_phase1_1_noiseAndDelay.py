@@ -9,13 +9,13 @@ import numpy as np
 from gymnasium import utils
 
 from .env_sofi_da import BaseFishEnvDA
-from geometry.auto_SOFI_da import generate_xml, SYSTEMPARAMETERS
+from geometry.sofi_motorid import generate_xml, SYSTEMPARAMETERS
 
 
 class FishEnv(BaseFishEnvDA, utils.EzPickle):
 
     # Optional per-variant fluid override. None → use the generator default
-    # (refitB, from auto_SOFI_da). A subclass can set the 15-coef vector (e.g. E13a)
+    # (refitB, from sofi_motorid). A subclass can set the 15-coef vector (e.g. E13a)
     # to train the same motor/curriculum on a different fluid model.
     FLUID_COEF = None
 
@@ -54,14 +54,14 @@ class FishEnv(BaseFishEnvDA, utils.EzPickle):
         )
         # Apply the optional fluid override (FLUID_COEF class attr). Overridden
         # variants write a PID-namespaced XML so parallel sweeps with different
-        # fluids never clobber the shared geometry/SOFI_da.xml.
+        # fluids never clobber the shared geometry/SOFI_motorid.xml.
         sp = dict(SYSTEMPARAMETERS)
         _geo = os.path.join(os.path.dirname(__file__), "..", "..", "..", "geometry")
         if type(self).FLUID_COEF is not None:
             sp["fluidCoef"] = [float(x) for x in type(self).FLUID_COEF]
             model_path = os.path.abspath(os.path.join(_geo, f"_sofi_da_{os.getpid()}.xml"))
         else:
-            model_path = os.path.abspath(os.path.join(_geo, "SOFI_da.xml"))
+            model_path = os.path.abspath(os.path.join(_geo, "SOFI_motorid.xml"))
         generate_xml(sp, filename=model_path)
         super().__init__(
             system_parameters=sp,

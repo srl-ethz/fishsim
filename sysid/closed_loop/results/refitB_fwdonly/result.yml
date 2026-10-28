@@ -1,0 +1,50 @@
+best_coef:
+- 0.0030076886991375453
+- 0.007421699329398956
+- 3.9128899146717604
+- 0.6465861250145061
+- 1.9956571077573644
+- 0.06355006839780405
+- 2.350250276599493
+- 12.355839847101345
+- 0.4694493374017906
+- 5.14493552073114
+- 0.14620017203422025
+- 1.58148248493131
+- 2.001650696495574
+- 14.306736876832357
+- 5.411147556211791
+best_loss: 0.1293497895443189
+config:
+  T_window: 2.0
+  backward_n_gaits: 3
+  backward_penalty: 5.0
+  c7_lower: 2.0
+  iter: 500
+  popsize: 12
+  random_start: true
+  sigma0: 2.0
+  whole_traj: true
+  yaw_weight: 0.1
+timestamp: '20260619_215143'
+train_parts:
+- 006_Normal Run__p1
+- 013_Near Miss Turn Run__p1
+- 014_Normal Run 3__p1
+- 015_Normal Turn Run__p1
+- 025_Moved Target Mid Run__p1
+- 026_Circle Run__p1
+- 027_Figure Eight Attempt__p1
+- 030_Figure Eight Attempt 3__p1
+- 030_Figure Eight Attempt 3__p2
+- 032_Figure Eight Attempt 5__p1
+- 032_Figure Eight Attempt 5__p2
+val_loss: 0.16404401915247183
+val_parts:
+- 001_Glide__p1
+- 002_Relief__p1
+- 004_Glide 2__p1
+- 015_Normal Turn Run__p2
+- 019_Initial Rotational Velocity__p1
+- 026_Circle Run__p2
+- 027_Figure Eight Attempt__p2

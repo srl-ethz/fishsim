@@ -5,7 +5,7 @@ differences from the SDA (LPF) curriculum it is based on:
 
 1. NO action low-pass filter and NO gear-compliance EMA. The motor bandwidth comes
    entirely from the re-identified MuJoCo position actuator (kp=4.09, kv=0.340,
-   armature=0.0044, forcerange ±2.3 in geometry/auto_SOFI_da.py; fluidID/scripts/
+   armature=0.0044, forcerange ±2.3 in geometry/sofi_motorid.py; fluidID/scripts/
    23_motor_id.py, 2026-06-13) plus an explicit transport delay.
 
 2. MOTOR TRANSPORT DELAY (motor_deadtime_steps, physics steps of 1 ms): identified

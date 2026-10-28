@@ -16,10 +16,9 @@ Usage:
     python sysid/fluid/eval_sysid.py                        # most recent result
     python sysid/fluid/eval_sysid.py outputs/sysid/opt_result_20260423_074659.yml
     python sysid/fluid/eval_sysid.py --skip_val_curve       # skip expensive recon
-    python sysid/fluid/eval_sysid.py --legacy_mass          # use old mass model (E1-E8)
 """
 
-import argparse, copy, glob, os, subprocess, sys, yaml
+import argparse, copy, glob, os, sys, yaml
 import numpy as np, pandas as pd, mujoco
 import matplotlib.pyplot as plt
 import sys as _sys; _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "paper"))
@@ -33,18 +32,17 @@ from scipy.optimize import curve_fit
 from scipy.fft import rfft, rfftfreq
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from geometry.auto_SOFI_field2sim import generate_xml as _generate_xml_current
-from geometry.auto_SOFI_field2sim import SYSTEMPARAMETERS as _SP_CURRENT
+from geometry.sofi_twin import generate_xml as _generate_xml_current
+from geometry.sofi_twin import SYSTEMPARAMETERS as _SP_CURRENT
 
-# Active generator — overridden by --legacy_mass at runtime
 _generate_xml = _generate_xml_current
 _SP_TEMPLATE  = _SP_CURRENT
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TMP_CFG   = os.path.join(_REPO_ROOT, "sysid", "fluid", "_eval_tmp.yml")
 _TMP_XML   = os.path.join(_REPO_ROOT, "geometry", "_eval_tmp.xml")
-_DATA_GLOB = os.path.join(os.environ.get("FISHDEPLOY_ROOT", os.path.join(_REPO_ROOT, "..", "fishdeploy")), "field_test", "data",
-                           "20260401_first_swim", "run_*", "processed", "03_field2sim_ready.csv")
+_DATA_GLOB = os.path.join(os.environ.get("FISHDEPLOY_ROOT", os.path.join(_REPO_ROOT, "..", "fishdeploy")), "data",
+                           "01_field_openloop_20260401", "run_*", "processed", "03_field2sim_ready.csv")
 _START_WEIGHT = 4.0  # must match the value used during optimisation
 _PULLEY_R       = 0.0175  # m — for mm→rad conversion in interpolated specs
 _PULLEY_DISPLAY = 17.5    # mm — real pulley radius, used to convert rad → mm for display
@@ -117,23 +115,6 @@ def _make_xml(coef, base_config):
     sp["filename"] = _TMP_XML
     _generate_xml(sp, config_path=_TMP_CFG)
 
-
-def _load_legacy_generator():
-    """
-    Exec git HEAD:geometry/auto_SOFI_field2sim.py in an isolated namespace
-    to recover the old generate_xml and SYSTEMPARAMETERS (head=0.001g,
-    bodyMass=0.6g, COM=[0.1284, 0, 0.0035]). No working-tree changes needed.
-    """
-    try:
-        src = subprocess.check_output(
-            ["git", "show", "HEAD:geometry/auto_SOFI_field2sim.py"],
-            cwd=_REPO_ROOT, stderr=subprocess.DEVNULL,
-        ).decode()
-    except subprocess.CalledProcessError:
-        raise RuntimeError("git show failed — are you in a git repo?")
-    ns = {"__file__": os.path.join(_REPO_ROOT, "geometry", "auto_SOFI_field2sim.py")}
-    exec(compile(src, "auto_SOFI_field2sim.py@HEAD", "exec"), ns)
-    return ns["generate_xml"], ns["SYSTEMPARAMETERS"]
 
 def collect_trajectories(csv_path, base_config, coef, sinusoid_override=None):
     """
@@ -430,17 +411,7 @@ def main():
     parser.add_argument("--output_dir", default="outputs/sysid/eval")
     parser.add_argument("--skip_val_curve", action='store_true',
                         help="Skip convergence reconstruction (skips re-running sims, fast).")
-    parser.add_argument("--legacy_mass", action='store_true',
-                        help="Use git HEAD mass model (head=0.001g, bodyMass=0.6g, COM=[0.1284,0,0.0035]). "
-                             "Required for evaluating E1-E8 results which were optimised with the old model.")
     args = parser.parse_args()
-
-    global _generate_xml, _SP_TEMPLATE
-    if args.legacy_mass:
-        print("  [legacy_mass] Loading old mass model from git HEAD...")
-        _generate_xml, _SP_TEMPLATE = _load_legacy_generator()
-        print(f"  [legacy_mass] COM = {_SP_TEMPLATE['centerOfMass']}")
-        print(f"  [legacy_mass] bodyMass = {_SP_TEMPLATE.get('bodyMass', '?')}")
 
     # ── find result YAML ──────────────────────────────────────────────────────
     if args.result_yaml:

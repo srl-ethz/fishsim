@@ -32,7 +32,7 @@ import mujoco
 from _paths import REPO as _REPO, FIELD as _FIELD, OUT as _OUT
 ROOT = str(_REPO)
 sys.path.insert(0, ROOT)
-from geometry import auto_SOFI_cpg as G
+from geometry import sofi as G
 
 FIELD = str(_FIELD)
 DEST  = str(_OUT)
@@ -42,23 +42,23 @@ CB = {"real": "#0072B2", "twin": "#D55E00"}
 # the six runs the E13a fluid was fitted on (five straight + one right turn)
 # E13 was fitted on exactly these six runs (FLUID_COEFFICIENTS.md, "E13 --- 15 coefficients");
 # run_9 is the fitted turn.
-FITTED = [("run_3_1.0Hz_9.0mm",        "1.0 Hz, 0.64 rad"),
-          ("run_4_2.0Hz_9.0mm",        "2.0 Hz, 0.51 rad"),
-          ("run_7_3.0Hz_7.0mm",        "3.0 Hz, 0.33 rad"),
+FITTED = [("run_03_1.0Hz_9.0mm",        "1.0 Hz, 0.64 rad"),
+          ("run_04_2.0Hz_9.0mm",        "2.0 Hz, 0.51 rad"),
+          ("run_07_3.0Hz_7.0mm",        "3.0 Hz, 0.33 rad"),
           ("run_10_4.0Hz_7.0mm",       "4.0 Hz, 0.24 rad"),
           ("run_11_2.0Hz_12.0mm",      "2.0 Hz, 0.52 rad"),
-          ("run_9_2.0Hz_6.0mm_-3.0mm", "2.0 Hz, turn")]
+          ("run_09_2.0Hz_6.0mm_-3.0mm", "2.0 Hz, turn")]
 # the other six field2sim-ready runs of the session; none appears in any fit.
 # run_8 is the turn, in the direction opposite run_9.
-VALID = [("run_1_1.0Hz_5.0mm",         "1.0 Hz, 0.35 rad"),
-         ("run_2_2.0Hz_5.0mm",         "2.0 Hz, 0.35 rad"),
-         ("run_5_1.0Hz_7.0mm",         "1.0 Hz, 0.50 rad"),
-         ("run_6_2.0Hz_7.0mm",         "2.0 Hz, 0.46 rad"),
+VALID = [("run_01_1.0Hz_5.0mm",         "1.0 Hz, 0.35 rad"),
+         ("run_02_2.0Hz_5.0mm",         "2.0 Hz, 0.35 rad"),
+         ("run_05_1.0Hz_7.0mm",         "1.0 Hz, 0.50 rad"),
+         ("run_06_2.0Hz_7.0mm",         "2.0 Hz, 0.46 rad"),
          ("run_12_2.0Hz_12.0mm_p-1600","2.0 Hz, 0.51 rad"),
-         ("run_8_2.0Hz_6.0mm_3.0mm",   "2.0 Hz, turn")]
+         ("run_08_2.0Hz_6.0mm_3.0mm",   "2.0 Hz, turn")]
 # run_2 was nudged by hand shortly after the start and slid off line, so it is sound
 # for visual inspection but not for a quoted number.
-QUARANTINE = {"run_2_2.0Hz_5.0mm"}
+QUARANTINE = {"run_02_2.0Hz_5.0mm"}
 HELDOUT = VALID
 FIT = FITTED + VALID
 MARK_T = 8.0        # blue dot on both paths at this elapsed time

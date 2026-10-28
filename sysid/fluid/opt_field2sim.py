@@ -10,12 +10,12 @@ Run from the fishsim root (with fishdeploy cloned next to it):
 
   # CMA-ES, 10 coefs, 6 training runs
   python sysid/fluid/opt_field2sim.py \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_1_1.0Hz_5.0mm \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_3_1.0Hz_9.0mm \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_4_2.0Hz_9.0mm \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_7_3.0Hz_7.0mm \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_10_4.0Hz_7.0mm \\
-      ../fishdeploy/field_test/data/20260401_first_swim/run_11_2.0Hz_12.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_01_1.0Hz_5.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_03_1.0Hz_9.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_04_2.0Hz_9.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_07_3.0Hz_7.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_10_4.0Hz_7.0mm \\
+      ../fishdeploy/data/01_field_openloop_20260401/run_11_2.0Hz_12.0mm \\
       --n_coef 10 --optimizer cma --physics_bounds --iter 300
 
 Suggested train/validate split (11 runs total):
@@ -38,9 +38,6 @@ import pandas as pd
 import multiprocessing
 import matplotlib
 import matplotlib.pyplot as plt
-from bayes_opt import BayesianOptimization
-from bayes_opt.acquisition import UpperConfidenceBound, ExpectedImprovement, ProbabilityOfImprovement
-from scipy.stats.qmc import LatinHypercube
 from scipy.optimize import curve_fit
 from scipy.fft import rfft, rfftfreq
 from tqdm import tqdm
@@ -49,7 +46,7 @@ import cma
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from geometry.auto_SOFI_field2sim import generate_xml, SYSTEMPARAMETERS
+from geometry.sofi_twin import generate_xml, SYSTEMPARAMETERS
 from sysid.fluid.es_ekf import FishESEKF
 
 plt.rcParams.update({
@@ -451,26 +448,15 @@ def main():
     parser.add_argument("--bound_range", type=float, default=None,
                         help="Zoom bounds to ±N around warm_start coef.")
 
-    # --- Optimizer choice ---
-    parser.add_argument("--optimizer", type=str, default="cma", choices=["bo", "cma"],
-                        help="Optimizer: cma (recommended for 10-15 coefs) or bo (Bayesian).")
 
-    # --- CMA-ES options ---
+    # --- CMA-ES ---
     parser.add_argument("--cma_sigma", type=float, default=2.0,
                         help="CMA-ES initial step size. ~1/3 of search range is a good start.")
     parser.add_argument("--cma_popsize", type=int, default=None,
                         help="CMA-ES population size. Default: auto (4 + 3*ln(n_coef)).")
 
-    # --- BO-only options ---
-    parser.add_argument("--init", type=int, default=20)
+    # --- warm start / seeding ---
     parser.add_argument("--warm_start", type=str, nargs='+', default=None)
-    parser.add_argument("--lhs", action="store_true")
-    parser.add_argument("--kappa", type=float, default=2.576)
-    parser.add_argument("--kappa_decay", type=float, default=1.0)
-    parser.add_argument("--acq", type=str, default="ucb", choices=["ucb", "ei", "poi"])
-    parser.add_argument("--xi", type=float, default=0.01)
-    parser.add_argument("--batch", type=int, default=1)
-    parser.add_argument("--max_gp_points", type=int, default=None)
     parser.add_argument("--seed_coef", type=str, action='append', default=None)
     parser.add_argument("--random_start", action="store_true",
                         help="Start CMA-ES from a random point within the bounds.")
@@ -486,7 +472,7 @@ def main():
     sync_cfg = base_config.get('synchronization', {})
     ky = sync_cfg.get('rotation', {}).get('stiffness', 0)
     print(f"\n{'='*62}")
-    print(f"  Optimizer      : {args.optimizer.upper()}")
+    print(f"  Optimizer      : CMA-ES")
     print(f"  Coefficients   : {args.n_coef}  ({' | '.join(_SEG_NAMES[args.n_coef])})")
     print(f"  Training runs  : {len(field_csvs)}")
     print(f"  Motor mode     : {base_config.get('motor', {}).get('twin_actuation', 'measured')}")
@@ -619,7 +605,7 @@ def main():
         _live_ax.plot(evals, best_so_far, color='crimson', lw=1.5, label=f'Best = {best_loss[0]:.5f}')
         _live_ax.set_xlabel("Evaluation")
         _live_ax.set_ylabel("Loss")
-        _live_ax.set_title(f"{args.optimizer.upper()} | n_coef={args.n_coef} | runs={n_csvs}")
+        _live_ax.set_title(f"CMA-ES | n_coef={args.n_coef} | runs={n_csvs}")
         _live_ax.legend(loc='upper right', fontsize=7)
         _live_ax.grid(True, alpha=0.3)
         _live_fig.tight_layout()
@@ -634,7 +620,7 @@ def main():
         ckpt = {
             'timestamp':          ts_live,
             'is_checkpoint':      True,
-            'optimizer':          args.optimizer,
+            'optimizer':          'cma',
             'n_coef':             args.n_coef,
             'run_dirs':           args.run_dirs,
             'yaw_weight':         args.yaw_weight,
@@ -669,228 +655,84 @@ def main():
         # ==================================================================
         # CMA-ES path
         # ==================================================================
-        if args.optimizer == 'cma':
-            if args.seed_coef:
-                # Use the last provided seed_coef as x0
-                last_seed = args.seed_coef[-1]
-                x0 = [float(x) for x in last_seed.split(',')]
-                if len(x0) != args.n_coef:
-                    print(f"  [CMA-ES] WARNING: seed_coef length ({len(x0)}) != n_coef ({args.n_coef}).")
-                    x0 = expand_coef(x0, args.n_coef)
-                print(f"  [CMA-ES] Initializing with SEED x0 from command line.")
-            elif args.random_start:
-                x0 = [
-                    np.random.uniform(pbounds[f'c{i}'][0], pbounds[f'c{i}'][1])
-                    for i in range(args.n_coef)
-                ]
-                print(f"  [CMA-ES] Initializing with RANDOM x0 within bounds.")
-            else:
-                x0 = warm_coef if warm_coef else [
-                    (pbounds[f'c{i}'][0] + pbounds[f'c{i}'][1]) / 2 for i in range(args.n_coef)
-                ]
-            
-            x0 = [float(np.clip(x0[i], pbounds[f'c{i}'][0], pbounds[f'c{i}'][1])) for i in range(args.n_coef)]
-            lb = [pbounds[f'c{i}'][0] for i in range(args.n_coef)]
-            ub = [pbounds[f'c{i}'][1] for i in range(args.n_coef)]
-
-            popsize = args.cma_popsize or (4 + int(3 * np.log(args.n_coef)))
-            print(f"  [CMA-ES] sigma0={args.cma_sigma}, popsize={popsize}, maxiter={args.iter}")
-            print(f"  [CMA-ES] x0 = {[f'{v:.4f}' for v in x0]}\n")
-
-            opts = cma.CMAOptions()
-            opts['bounds'] = [lb, ub]
-            opts['maxiter'] = args.iter
-            opts['popsize'] = popsize
-            opts['seed'] = 42
-            opts['verbose'] = -9  # suppress internal cma output
-
-            es = cma.CMAEvolutionStrategy(x0, args.cma_sigma, opts)
-            pbar = tqdm(total=args.iter, desc="CMA-ES", unit="gen",
-                        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}] {postfix}")
-
-            while not es.stop():
-                solutions = es.ask()
-
-                # Evaluate all (solution × csv) pairs in parallel
-                all_jobs = [
-                    (s_idx, sol, base_config, csv, args.yaw_weight, args.oscillation_weight, args.backward_penalty, args.n_coef, args.start_weight, args.sinusoid_weight, sinusoid_params)
-                    for s_idx, sol in enumerate(solutions)
-                    for csv in field_csvs
-                ]
-                raw = _GLOBAL_POOL.starmap(evaluate_single, all_jobs)
-
-                per_sol = defaultdict(list)
-                for job_id, coef, mse_pos, mse_yaw, p_osc, p_back, detail in raw:
-                    per_sol[job_id].append((coef, mse_pos, mse_yaw, p_osc, p_back, detail))
-
-                fitnesses = []
-                for s_idx, sol in enumerate(solutions):
-                    runs = per_sol[s_idx]
-                    total = sum(1e6 if r[1] >= 1e5 else r[1] + args.yaw_weight * r[2] + r[3] + r[4] for r in runs)
-                    loss = total / n_csvs
-                    fitnesses.append(loss)
-                    eval_count[0] += 1
-                    pdct = {f'c{j}': float(sol[j]) for j in range(args.n_coef)}
-                    eval_history.append({'params': pdct, 'loss': float(loss)})
-                    loss_history.append(loss)
-                    if loss < best_loss[0]:
-                        best_loss[0] = loss
-                        best_c[0] = list(sol)
-                        details_str = ' | '.join(r[5] for r in runs)
-                        tqdm.write(f"  [{eval_count[0]:4d}] *** NEW BEST *** loss={loss:.6f}  ({details_str})  t={time.time()-t_start:.0f}s")
-
-                es.tell(solutions, fitnesses)
-                update_live_plot()
-                pbar.set_postfix({"best": f"{best_loss[0]:.4f}", "σ": f"{es.sigma:.3f}"})
-                pbar.update(1)
-
-            pbar.close()
-            if es.result.xbest is not None and es.result.fbest < best_loss[0]:
-                best_c[0] = list(es.result.xbest)
-                best_loss[0] = float(es.result.fbest)
-
-        # ==================================================================
-        # Bayesian Optimisation path
-        # ==================================================================
+        if args.seed_coef:
+            # Use the last provided seed_coef as x0
+            last_seed = args.seed_coef[-1]
+            x0 = [float(x) for x in last_seed.split(',')]
+            if len(x0) != args.n_coef:
+                print(f"  [CMA-ES] WARNING: seed_coef length ({len(x0)}) != n_coef ({args.n_coef}).")
+                x0 = expand_coef(x0, args.n_coef)
+            print(f"  [CMA-ES] Initializing with SEED x0 from command line.")
+        elif args.random_start:
+            x0 = [
+                np.random.uniform(pbounds[f'c{i}'][0], pbounds[f'c{i}'][1])
+                for i in range(args.n_coef)
+            ]
+            print(f"  [CMA-ES] Initializing with RANDOM x0 within bounds.")
         else:
-            def objective(**kwargs):
-                coef = [float(kwargs[f'c{i}']) for i in range(args.n_coef)]
-                _, loss, _ = evaluate_params(coef, base_config, field_csvs, args.yaw_weight, args.oscillation_weight, args.backward_penalty, args.n_coef)
-                return -loss
+            x0 = warm_coef if warm_coef else [
+                (pbounds[f'c{i}'][0] + pbounds[f'c{i}'][1]) / 2 for i in range(args.n_coef)
+            ]
+        
+        x0 = [float(np.clip(x0[i], pbounds[f'c{i}'][0], pbounds[f'c{i}'][1])) for i in range(args.n_coef)]
+        lb = [pbounds[f'c{i}'][0] for i in range(args.n_coef)]
+        ub = [pbounds[f'c{i}'][1] for i in range(args.n_coef)]
 
-            if args.acq == "ei":
-                utility = ExpectedImprovement(xi=args.xi)
-                print(f"  [acq] EI, xi={args.xi}")
-            elif args.acq == "poi":
-                utility = ProbabilityOfImprovement(xi=args.xi)
-                print(f"  [acq] POI, xi={args.xi}")
-            else:
-                utility = UpperConfidenceBound(
-                    kappa=args.kappa,
-                    exploration_decay=args.kappa_decay if args.kappa_decay < 1.0 else None,
-                )
-                print(f"  [acq] UCB, κ={args.kappa}" + (f", decay={args.kappa_decay}" if args.kappa_decay < 1.0 else ""))
+        popsize = args.cma_popsize or (4 + int(3 * np.log(args.n_coef)))
+        print(f"  [CMA-ES] sigma0={args.cma_sigma}, popsize={popsize}, maxiter={args.iter}")
+        print(f"  [CMA-ES] x0 = {[f'{v:.4f}' for v in x0]}\n")
 
-            optimizer = BayesianOptimization(
-                f=objective, pbounds=pbounds, random_state=42, verbose=0,
-                acquisition_function=utility, allow_duplicate_points=True,
-            )
+        opts = cma.CMAOptions()
+        opts['bounds'] = [lb, ub]
+        opts['maxiter'] = args.iter
+        opts['popsize'] = popsize
+        opts['seed'] = 42
+        opts['verbose'] = -9  # suppress internal cma output
 
-            def clip_evals(evals):
-                clipped_list, n_c = [], 0
-                for ev in evals:
-                    try:
-                        params = ev['params']
-                        clipped = {k: float(np.clip(params[k], pbounds[k][0], pbounds[k][1])) for k in params}
-                        if any(clipped[k] != float(params[k]) for k in params): n_c += 1
-                        ev_c = dict(ev); ev_c['params'] = clipped
-                        clipped_list.append(ev_c)
-                    except: pass
-                return clipped_list, n_c
+        es = cma.CMAEvolutionStrategy(x0, args.cma_sigma, opts)
+        pbar = tqdm(total=args.iter, desc="CMA-ES", unit="gen",
+                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}] {postfix}")
 
-            valid_evals = []
-            if evals_per_file and args.max_gp_points and len(evals_per_file) > 1:
-                budget_per_file = args.max_gp_points // len(evals_per_file)
-                total_clipped = 0
-                for file_evals in evals_per_file:
-                    clipped, n_c = clip_evals(file_evals)
-                    total_clipped += n_c
-                    valid_evals.extend(sorted(clipped, key=lambda e: e['loss'])[:budget_per_file])
-                print(f"  [warm_start] Clipped {total_clipped}/{len(prev_evals)} evals.")
-            else:
-                valid_evals, n_c = clip_evals(prev_evals)
-                if n_c: print(f"  [warm_start] Clipped {n_c}/{len(prev_evals)} evals.")
-                if args.max_gp_points and len(valid_evals) > args.max_gp_points:
-                    valid_evals = sorted(valid_evals, key=lambda e: e['loss'])[:args.max_gp_points]
+        while not es.stop():
+            solutions = es.ask()
 
-            for ev in valid_evals:
-                try: optimizer.register(params=ev['params'], target=-ev['loss'])
-                except: pass
+            # Evaluate all (solution × csv) pairs in parallel
+            all_jobs = [
+                (s_idx, sol, base_config, csv, args.yaw_weight, args.oscillation_weight, args.backward_penalty, args.n_coef, args.start_weight, args.sinusoid_weight, sinusoid_params)
+                for s_idx, sol in enumerate(solutions)
+                for csv in field_csvs
+            ]
+            raw = _GLOBAL_POOL.starmap(evaluate_single, all_jobs)
 
-            # Init phase
-            init_points = []
-            if args.lhs and args.init > 0:
-                lhs_unit = LatinHypercube(d=args.n_coef, seed=42).random(n=args.init)
-                for row in lhs_unit:
-                    init_points.append([pbounds[f'c{i}'][0] + row[i]*(pbounds[f'c{i}'][1]-pbounds[f'c{i}'][0]) for i in range(args.n_coef)])
-            elif args.init > 0:
-                for _ in range(args.init):
-                    init_points.append([np.random.uniform(pbounds[f'c{i}'][0], pbounds[f'c{i}'][1]) for i in range(args.n_coef)])
-            if warm_coef: init_points.insert(0, list(warm_coef))
-            if args.seed_coef:
-                for sc_str in args.seed_coef:
-                    seed = [float(x) for x in sc_str.split(',')]
-                    if len(seed) == args.n_coef:
-                        seed = [float(np.clip(seed[i], pbounds[f'c{i}'][0], pbounds[f'c{i}'][1])) for i in range(args.n_coef)]
-                        init_points.append(seed)
+            per_sol = defaultdict(list)
+            for job_id, coef, mse_pos, mse_yaw, p_osc, p_back, detail in raw:
+                per_sol[job_id].append((coef, mse_pos, mse_yaw, p_osc, p_back, detail))
 
-            if init_points:
-                print(f"  [Evaluating {len(init_points)} init points in parallel...]")
-                async_res = [_GLOBAL_POOL.apply_async(evaluate_params, (p, base_config, field_csvs, args.yaw_weight, args.oscillation_weight, args.backward_penalty, args.n_coef, args.start_weight, args.sinusoid_weight, sinusoid_params)) for p in init_points]
-                pbar = tqdm(total=len(init_points), desc="Initialization")
-                finished = 0
-                while finished < len(init_points):
-                    for i, r in enumerate(async_res):
-                        if r and r.ready():
-                            p_vec, loss, _ = r.get(); async_res[i] = None; finished += 1
-                            eval_count[0] += 1
-                            try: optimizer.register(params={f'c{j}': p_vec[j] for j in range(args.n_coef)}, target=-loss)
-                            except: pass
-                            loss_history.append(loss)
-                            eval_history.append({'params': {f'c{j}': float(p_vec[j]) for j in range(args.n_coef)}, 'loss': float(loss)})
-                            if loss < best_loss[0]:
-                                best_loss[0] = loss
-                                best_c[0] = list(p_vec)
-                            update_live_plot()
-                            pbar.set_postfix({"best": f"{best_loss[0]:.4f}"}); pbar.update(1)
-                    time.sleep(0.05)
-                pbar.close()
+            fitnesses = []
+            for s_idx, sol in enumerate(solutions):
+                runs = per_sol[s_idx]
+                total = sum(1e6 if r[1] >= 1e5 else r[1] + args.yaw_weight * r[2] + r[3] + r[4] for r in runs)
+                loss = total / n_csvs
+                fitnesses.append(loss)
+                eval_count[0] += 1
+                pdct = {f'c{j}': float(sol[j]) for j in range(args.n_coef)}
+                eval_history.append({'params': pdct, 'loss': float(loss)})
+                loss_history.append(loss)
+                if loss < best_loss[0]:
+                    best_loss[0] = loss
+                    best_c[0] = list(sol)
+                    details_str = ' | '.join(r[5] for r in runs)
+                    tqdm.write(f"  [{eval_count[0]:4d}] *** NEW BEST *** loss={loss:.6f}  ({details_str})  t={time.time()-t_start:.0f}s")
 
-            # Iterative BO
-            effective_batch = max(args.batch, 1)
-            acq_str = (f"EI(ξ={args.xi})" if args.acq == "ei" else f"POI(ξ={args.xi})" if args.acq == "poi" else f"UCB(κ={args.kappa:.3f})")
-            print(f"\n  [BO: {args.iter} steps, batch={effective_batch}, n_csvs={n_csvs}, acq={acq_str}]")
-            n_batches = int(np.ceil(args.iter / effective_batch))
-            pbar_iter = tqdm(total=args.iter, desc="Optimization", unit="eval",
-                             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}")
-            for _ in range(n_batches):
-                batch_p_dicts = [optimizer.suggest() for _ in range(effective_batch)]
-                batch_p_lists = [[p[f'c{i}'] for i in range(args.n_coef)] for p in batch_p_dicts]
+            es.tell(solutions, fitnesses)
+            update_live_plot()
+            pbar.set_postfix({"best": f"{best_loss[0]:.4f}", "σ": f"{es.sigma:.3f}"})
+            pbar.update(1)
 
-                all_jobs = [
-                    (b_idx, p, base_config, csv, args.yaw_weight, args.oscillation_weight, args.backward_penalty, args.n_coef, args.start_weight, args.sinusoid_weight, sinusoid_params)
-                    for b_idx, p in enumerate(batch_p_lists)
-                    for csv in field_csvs
-                ]
-                raw = _GLOBAL_POOL.starmap(evaluate_single, all_jobs)
-
-                per_point = defaultdict(list)
-                for job_id, coef, mse_pos, mse_yaw, p_osc, p_back, detail in raw:
-                    per_point[job_id].append((coef, mse_pos, mse_yaw, p_osc, p_back, detail))
-
-                for b_idx in range(effective_batch):
-                    runs = per_point[b_idx]
-                    p_vec = runs[0][0]
-                    loss = sum(1e6 if r[1] >= 1e5 else r[1] + args.yaw_weight * r[2] + r[3] + r[4] for r in runs) / n_csvs
-                    details = [r[5] for r in runs]
-                    eval_count[0] += 1
-                    pdct = {f'c{i}': float(p_vec[i]) for i in range(args.n_coef)}
-                    try: optimizer.register(params=pdct, target=-loss)
-                    except: pass
-                    loss_history.append(loss); eval_history.append({'params': pdct, 'loss': float(loss)})
-                    is_best = loss < best_loss[0]
-                    if is_best:
-                        best_loss[0] = loss
-                        best_c[0] = list(p_vec)
-                    acq_val = f"{utility.kappa:.3f}" if hasattr(utility, 'kappa') else f"ξ={args.xi}"
-                    pbar_iter.set_postfix({"best": f"{best_loss[0]:.4f}", "cur": f"{loss:.4f}", "acq": acq_val})
-                    pbar_iter.update(1)
-                    if is_best:
-                        tqdm.write(f"  [{eval_count[0]:4d}] *** NEW BEST *** loss={loss:.6f}  ({' | '.join(details)})  t={time.time()-t_start:.0f}s")
-                    elif loss >= 1e5:
-                        tqdm.write(f"  [{eval_count[0]:4d}] FAIL  ({' | '.join(details)})")
-                    update_live_plot()
-            pbar_iter.close()
+        pbar.close()
+        if es.result.xbest is not None and es.result.fbest < best_loss[0]:
+            best_c[0] = list(es.result.xbest)
+            best_loss[0] = float(es.result.fbest)
 
     except KeyboardInterrupt:
         print("\n\n  [!] Interrupted — saving current best before exit...")
@@ -912,7 +754,7 @@ def main():
 
     save_data = {
         'timestamp': ts,
-        'optimizer': args.optimizer,
+        'optimizer': 'cma',
         'n_coef': args.n_coef,
         'run_dirs': args.run_dirs,
         'yaw_weight': args.yaw_weight,

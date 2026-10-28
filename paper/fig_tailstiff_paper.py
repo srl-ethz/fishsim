@@ -6,7 +6,7 @@ Three panels, one column.
   (a) Top view, neutral. Every symbol the text uses is here: the shaft angle theta, the
       pulley radius r, the moment arm d_i at each eyelet, and the joint
       pitch. Lengths are the ones the identification used (tail_sysid/utils.py) and
-      the ones in the deployed model (geometry/SOFI_cpg.xml); the two agree.
+      the ones in the deployed model (geometry/SOFI.xml); the two agree.
 
       The eyelets do not sit over the joint axes: each is 11.0 mm (first) or 12.5 mm aft of
       its axis, at the middle of the segment, which is what the model has (jnt_pos is zero,
@@ -33,8 +33,8 @@ Three panels, one column.
       puts the structural stiffness at the intercept and the effective inertia in the slope.
 
 Inputs
-    upstream/fishCREATE/geometry/SOFI_cpg.xml      identified twin, for the bend
-    ../sysid/tail_stiffness/ on the r17.5 air-benchmark sweep in fishdeploy/sysid/tail/data
+    upstream/fishCREATE/geometry/SOFI.xml      identified twin, for the bend
+    ../sysid/tail_stiffness/ on the r17.5 air-benchmark sweep in fishdeploy/data/03_sysid/tail_benchmark/air
 """
 import sys
 import numpy as np
@@ -49,14 +49,14 @@ from step1_stiffness import prescreen_condition, process_file, ALL_AMP_FRACS
 from utils import fit_spring_inertia
 from paper_style import use_paper_style, size, save, CB, LW, EMPH_LW
 
-MODEL = str(REPO / "geometry" / "SOFI_cpg.xml")
+MODEL = str(REPO / "geometry" / "SOFI.xml")
 
 R_PULLEY = 17.5
 D = np.array([19.5, 14.5, 10.75, 7.0, 4.5])
 STICK_X = np.array([11.0, 12.5, 12.5, 12.5, 12.5])    # bracket station aft of the axis
 STICK_OUT = np.array([24.5, 19.5, 15.75, 12.0, 9.5]) # how far the bracket reaches out
 L_FLEX = np.array([9.5, 11.0, 11.0, 11.0, 11.0])     # flexure: axis -> just before the bracket
-KJ = np.array([2.988, 2.391, 2.123, 1.767, 1.323])      # identified, SOFI_cpg.xml
+KJ = np.array([2.988, 2.391, 2.123, 1.767, 1.323])      # identified, SOFI.xml
 THETA_B = -0.22         # rad; negative bends the tail up, a slight load case
 THETA_DRAW = -0.60      # rad; the theta MARK only. The load case is a 12.6 deg shaft
                         # rotation, whose arc sits almost on the reference spoke and

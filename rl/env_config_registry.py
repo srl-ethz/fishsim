@@ -12,8 +12,8 @@ from .environments.da import env_sofi_da_phase1_2_physicsDR as env_sofi_da_p1_2
 from .environments.da import env_sofi_full_curriculum_da as env_sofi_da_motorid_v1
 
 # Physics models — one frozen generator per direction (see CANONICAL_POLICIES.md)
-from geometry.auto_SOFI_cpg import SYSTEMPARAMETERS as SOFI_CPG_PARAMS
-from geometry.auto_SOFI_da import SYSTEMPARAMETERS as SOFI_DA_PARAMS
+from geometry.sofi import SYSTEMPARAMETERS as SOFI_CPG_PARAMS
+from geometry.sofi_motorid import SYSTEMPARAMETERS as SOFI_DA_PARAMS
 
 ENVIRONMENT_REGISTRY = {
     # ── CPG direction ────────────────────────────────────────────────────────

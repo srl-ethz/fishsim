@@ -16,7 +16,7 @@ import os, sys, argparse, numpy as np, mujoco, cv2
 from _paths import REPO as _REPO, OUT as _OUT
 FISHCREATE = str(_REPO)
 sys.path.insert(0, FISHCREATE)
-import geometry.auto_SOFI_da as gen
+import geometry.sofi_motorid as gen
 OUT = str(_OUT / "40_hull_hinges_fluid.png")   # the committed copy is paper/static/40_hull_hinges_fluid.png
 
 COL_HEAD = [0.25, 0.45, 1.00, 0.45]   # blue

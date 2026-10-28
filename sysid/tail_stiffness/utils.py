@@ -25,7 +25,7 @@ KT_NM_PER_A     = 1.5 / 1.193                        # Nm/A  (stall torque / sta
 LOAD_TO_NM      = CURRENT_UNIT_A * KT_NM_PER_A      # 3.382e-3 Nm per raw Load unit
 
 # ---------------------------------------------------------------------------
-# SoFi geometry (from geometry/auto_SOFI_field2sim.py)
+# SoFi geometry (from geometry/sofi_twin.py)
 # ---------------------------------------------------------------------------
 PULLEY_RADIUS_M = 0.0175          # m  (r17.5 dataset)
 
@@ -56,7 +56,7 @@ E_PLA_NOM = 2.7e9   # Pa
 DATA_DIR = os.path.join(
     os.path.dirname(__file__),
     "..", "..", "..",
-    "fishdeploy", "sysid", "tail", "data"
+    "fishdeploy", "data", "03_sysid", "tail_benchmark", "air"
 )
 
 def find_latest_file(env: str, d_mm: float, freq_hz: float, amp_frac_pct: float) -> str | None:

@@ -4,10 +4,10 @@ Everything runs from the repository root with the `fishsim` environment (`enviro
 
 ## The stack, in four layers
 
-1. **Model.** `geometry/auto_SOFI_cpg.py` holds the identified physics in `SYSTEMPARAMETERS`: the E13a fluid
+1. **Model.** `geometry/sofi.py` holds the identified physics in `SYSTEMPARAMETERS`: the E13a fluid
    coefficients (15 numbers, three ellipsoid groups: head, tail body, fin), the per-hinge stiffness and damping
    from the tail benchmark, the mass and inertia from CAD, and the motor as a position servo (kp 800, kv 20,
-   force limit 1.0). `python geometry/auto_SOFI_cpg.py` writes `geometry/SOFI_cpg.xml`; the environments
+   force limit 1.0). `python geometry/sofi.py` writes `geometry/SOFI.xml`; the environments
    regenerate it on start, so the XML is derived, never edited.
 2. **Environment.** `rl/environments/cpg/env_sofi.py` is the Gymnasium environment. The action is the six
    parameters of a central pattern generator (`cpg_oscillator.py`): two first-harmonic and two second-harmonic
@@ -54,7 +54,7 @@ right are both right), and a deterministic evaluation underestimates the policy 
 ## The direct-action comparison
 
 `rl/environments/da/` is the same curriculum with the motor setpoint as the action (1-D, 40-D observation
-with motor history), trained with `rl/sweepconfigs/sweep_da.yml` against `geometry/auto_SOFI_da.py` (refitB
+with motor history), trained with `rl/sweepconfigs/sweep_da.yml` against `geometry/sofi_motorid.py` (refitB
 fluid, identified motor). The resulting policy (`policies/sofi_da_rl_policy.zip`) swims in simulation by
 exploiting high-frequency tail flicks that the stateless fluid model rewards (paper Fig. 9 and Fig. 10).
 `sweep_da_fof.yml` is the same recipe with a first-order 4.5 Hz low-pass filter on the setpoint

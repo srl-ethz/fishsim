@@ -8,7 +8,7 @@
 
 ## TL;DR
 
-The fish's head+body center of mass (`centerOfMass` in all four `geometry/auto_SOFI_*.py`
+The fish's head+body center of mass (`centerOfMass` in all four `geometry/sofi*.py`
 generators) is set to **x = −7.97 mm**, which places the COM **~8 mm in front of the nose** —
 physically impossible, since all 830 g of head+body mass lives in x ∈ [0, 198] mm.
 
@@ -145,13 +145,13 @@ redo the downstream fits:
    nose-pivot model; their turning behavior is tuned to it.
 
 The good news: it's a **one-line model change** (correct `centerOfMass_x` to ≈ +84.3 mm in the four
-`auto_SOFI_*.py` generators; the `fullinertia` and mass stay as-is), after which the SysID + RL
+`sofi*.py` generators; the `fullinertia` and mass stay as-is), after which the SysID + RL
 pipeline reruns are mechanical.
 
 ### Recommended fix (when ready)
 
 ```python
-# in geometry/auto_SOFI_{da,cpg,field2sim,cycloid}.py
+# in geometry/sofi*.py
 "centerOfMass": [0.08433, 0.001328, 0.000172],   # was [-0.007971, ...] — added the +92.3 mm
                                                   # nose→sealing-surface offset; SW combined COM
                                                   # = +7.97 mm forward of the sealing surface

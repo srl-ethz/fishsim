@@ -18,13 +18,13 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 from paper_style import use_paper_style, size, save, CB, LW
 from _segfit import segment_fits, summarise, R2_MIN
 
-from _paths import FIELD as _FIELD, DEPLOY_RUNS as _DEPLOY_RUNS, DATA as _DATA
+from _paths import FIELD as _FIELD, DEPLOY_RUNS as _DEPLOY_RUNS, DATA as _DATA, paper_runs as _paper_runs
 FIELD = str(_FIELD)
 DEPLOY = str(_DEPLOY_RUNS)
-OL = ["run_3_1.0Hz_9.0mm","run_4_2.0Hz_9.0mm","run_7_3.0Hz_7.0mm","run_10_4.0Hz_7.0mm",
-      "run_11_2.0Hz_12.0mm","run_9_2.0Hz_6.0mm_-3.0mm","run_1_1.0Hz_5.0mm",
-      "run_2_2.0Hz_5.0mm","run_5_1.0Hz_7.0mm","run_6_2.0Hz_7.0mm",
-      "run_12_2.0Hz_12.0mm_p-1600","run_8_2.0Hz_6.0mm_3.0mm"]
+OL = ["run_03_1.0Hz_9.0mm","run_04_2.0Hz_9.0mm","run_07_3.0Hz_7.0mm","run_10_4.0Hz_7.0mm",
+      "run_11_2.0Hz_12.0mm","run_09_2.0Hz_6.0mm_-3.0mm","run_01_1.0Hz_5.0mm",
+      "run_02_2.0Hz_5.0mm","run_05_1.0Hz_7.0mm","run_06_2.0Hz_7.0mm",
+      "run_12_2.0Hz_12.0mm_p-1600","run_08_2.0Hz_6.0mm_3.0mm"]
 FITSET = set(OL[:6])
 
 
@@ -39,7 +39,7 @@ def main():
     P = np.array(P); isfit = np.array(isfit)
 
     W = []
-    for p in sorted(glob.glob(os.path.join(DEPLOY, "20260520_*"))):
+    for p in [str(d) for d in _paper_runs()]:   # the 43 runs of the paper
         f = os.path.join(p, "raw", "run.csv")
         if not os.path.exists(f): continue
         d = pd.read_csv(f)

@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 import mujoco
 import yaml
 
-XML_PATH    = "geometry/SOFI_field2sim.xml"
+XML_PATH    = "geometry/SOFI_twin.xml"
 CONFIG_PATH = "sysid/fluid/field2sim.yml"
 PLOT_DIR    = os.path.join(os.path.dirname(__file__), "plots")
 PASS_TOL    = 0.05   # 5% tolerance on k_eff

@@ -16,7 +16,7 @@ collect_deployment for what is corrected, what is not, and how both were verifie
 fraction remains a lower bound.
 
 Inputs
-    upstream/sofi_control/field_test/data/20260401_first_swim/   open-loop identification runs
+    fishdeploy/data/01_field_openloop_20260401/   open-loop identification runs
     upstream/sofi_control/rl_deploy/runs/                        deployment runs (encoder)
     data/sim_rollouts.npz                                        simulated TG and direct action
     data/sim_rollouts_lpf.npz                                    direct action behind a 4.5 Hz LPF
@@ -42,7 +42,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.signal import welch
 
-from _paths import FIELD as _FIELD, DEPLOY_RUNS as _DEPLOY_RUNS, DATA as _DATA
+from _paths import FIELD as _FIELD, DEPLOY_RUNS as _DEPLOY_RUNS, DATA as _DATA, paper_runs as _paper_runs
 from paper_style import use_paper_style, size, save, CB, LW, EMPH_LW
 
 FIELD = str(_FIELD)
@@ -146,7 +146,7 @@ def collect_deployment():
 
 def deployment_angles():
     """Cleaned, uniformly-resampled tail angle for each deployment run: (angle, dt)."""
-    for p in sorted(glob.glob(f"{DEPLOY}/*/raw/run.csv")):
+    for p in [str(d / "raw" / "run.csv") for d in _paper_runs()]:   # the 43 runs of the paper
         c = pd.read_csv(p)
         if len(c) < 300 or not {"obs_00", "obs_01", "pi_time"} <= set(c.columns):
             continue

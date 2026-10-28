@@ -28,7 +28,7 @@ import numpy as np
 from gymnasium import utils
 
 from .env_sofi import BaseFishEnv
-from geometry.auto_SOFI_cpg import generate_xml, SYSTEMPARAMETERS
+from geometry.sofi import generate_xml, SYSTEMPARAMETERS
 
 
 class FishEnv(BaseFishEnv, utils.EzPickle):
@@ -67,7 +67,7 @@ class FishEnv(BaseFishEnv, utils.EzPickle):
             **kwargs,
         )
         model_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "geometry", "SOFI_cpg.xml"
+            os.path.dirname(__file__), "..", "..", "..", "geometry", "SOFI.xml"
         ))
         generate_xml(SYSTEMPARAMETERS, filename=model_path)
         super().__init__(

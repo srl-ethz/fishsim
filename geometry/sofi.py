@@ -5,24 +5,15 @@
 #   1. Single-fish default (numberOfFish=1, ghost_ids=frozenset()) — no SysID ghost.
 #   2. motor_ctrlrange / motor_forcerange exposed as SYSTEMPARAMETERS knobs;
 #      actuator ctrlrange/forcerange and motor-joint range track them consistently.
-#      3. Motor model identified open-loop on RL-deployment + field data, RL-primary
-#      (3:1) weighting since RL is the deployment distribution (fluidID/scripts/
-#      23_motor_id.py, 2026-06-13): motor_kp=4.09, motor_kv=0.340, armature=0.0044.
-#      forcerange/kv = 6.77 rad/s (kv DR spans hardware 5.75). armature = reflected
-#      rotor inertia (I_rotor·200²). RL tracking 2.49°/0.79 rad/s; field 4 Hz Bode 0.398
-#      vs real 0.345–0.378 (no backward-exploit over-pass). Transport delay ≈28 ms:
-#      cmd→meas lag is ~73 ms in RL / ~60 ms field (delay-vs-pole split is ambiguous
-#      without step inputs); modelled via motor_deadtime_steps in the env/driver (NOT in
-#      XML — MuJoCo has no native input delay), DR'd 20–40 ms. The action LPF and gear-
-#      compliance EMA were REMOVED — both double-counted velocity saturation (baseline:
-#      fluidID/results/motor_baseline/FINDINGS.md).
+#   3. Softer position loop (motor_kp=100, motor_kv=1.0) so the CPG's first-order
+#      filter dominates the actuation time-constant rather than the motor PD.
 ################################################################################
 
 import numpy as np
 import os
 
 SYSTEMPARAMETERS = {
-    "filename": "geometry/SOFI_da.xml",
+    "filename": "geometry/SOFI.xml",
 
     "dt": 0.001,
     "freeZ": False,
@@ -33,17 +24,14 @@ SYSTEMPARAMETERS = {
     "fluidDensity": 1000,
     "fluidViscosity": 0.0013,
 
-    # 15-coef fluid vector (head [0:5], tail [5:10], fin [10:15]) — re-identified on
-    # RL-deployment + field-tendon p2 data (030/032 p2) via fluidID/scripts/03_optimize.py
-    # with an explicit backward-swimming penalty (result refitB_fwdonly, 2026-06-20;
-    # best_loss 0.1293, val_loss 0.164 — best yet; forbids backward, verified on 3 gaits).
+    # 15-coef fluid vector (head [0:5], tail [5:10], fin [10:15]) from field-tuned SysID search.
     "fluidCoef": [
-        0.0030076886991375453, 0.007421699329398956, 3.9128899146717604,
-        0.6465861250145061, 1.9956571077573644,                                  # head
-        0.06355006839780405, 2.350250276599493, 12.355839847101345,
-        0.4694493374017906, 5.14493552073114,                                    # tail body
-        0.14620017203422025, 1.58148248493131, 2.001650696495574,
-        14.306736876832357, 5.411147556211791,                                   # fin
+        0.005822, 0.044600, 0.812577,
+        0.521112, 0.902770,                                                       # head
+        0.039474, 0.551234, 5.427544,
+        0.000956, 1.581176,                                                       # tail body
+        0.170727, 0.003855, 18.310332,
+        10.148229, 5.951302,                                                      # fin
     ],
 
     # Inertial properties derived from SolidWorks 2026-04-29: Head(580g) + Body(250g) = 830g
@@ -68,14 +56,10 @@ SYSTEMPARAMETERS = {
 
     "motorShaftLength": 0.035,
     "pulley_radius": 0.0175,
-    # Re-identified 2026-06-19 (23_motor_id.py, kv-free fit + joint-damping back-EMF):
-    # velocity cap now comes from JOINT DAMPING (b) outside the actuator clip, not kv.
-    "motor_kp": 5.41,           # kv=0 fit (held-out 2.27°, beats old 2.66°)
-    "motor_kv": 0.0,            # back-EMF moved to joint damping; kv DR'd small [0,0.12]
-    "motor_armature": 0.0113,   # reflected rotor inertia (kv-free fit)
-    "motor_jointdamping": 0.48, # b = forcerange/v_max = 2.3/4.79 → hard velocity cap ~4.8 rad/s
-    "motor_ctrlrange": 1.0,     # ± rad target angle (matches motor joint range)
-    "motor_forcerange": 2.3,  # ± N·m torque cap; with b → v_max scales w/ forcerange (voltage sag)
+    "motor_kp": 800.0,
+    "motor_kv": 20.0,
+    "motor_ctrlrange": 0.8,     # ± rad target angle (matches motor joint range)
+    "motor_forcerange": 1.0,  # ± N·m torque cap on motor_0
 
     "tailSegmentLength": 0.003,
 
@@ -138,9 +122,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     stiffness_head  = 0
     damping_head    = 0
     stiffness_motor = 0
-    # Motor joint viscous damping = DC-motor back-EMF (torque-speed droop), applied
-    # OUTSIDE the actuator forcerange clip so it caps velocity even on saturated steps.
-    damping_motor   = float(args.get("motor_jointdamping", 0.0))
+    damping_motor   = 0
 
     # Pulley tangent angles (PULLEY mode only - field robot is always PULLEY)
     tx   = (0.198 + args["body-tail0"] / 2) - 0.12
@@ -216,7 +198,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
                   mass="0.100" rgba="0.3 0.3 0.3 0.5" fluidshape="none" contype="0" conaffinity="0"/>
             -->
             <body pos="0.12 0 0" name="motor_{i}">
-                <joint name="motor_{i}" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" stiffness="{stiffness_motor}" damping="{damping_motor}" armature="{args['motor_armature']}"/>
+                <joint name="motor_{i}" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" stiffness="{stiffness_motor}" damping="{damping_motor}" armature="0.001"/>
                 <geom name="motorShaft_{i}"  type="cylinder" pos="0 0 0"                      size="0.005 {args['motorShaftLength']/2}"  rgba="{c_dark}"     mass="0.001" fluidshape="none"/>
                 <geom name="motorPulley_{i}" type="cylinder" pos="0 0 {args['motorShaftLength']/2}" size="{p_radius} 0.0025" rgba="{c_red_tail}" mass="0"     fluidshape="none"/>
                 <site name="pulleyRight_{i}" pos="{p_radius * np.cos(theta_l)} {p_radius * np.sin(theta_l)} {args['motorShaftLength']/2+0.005}" size="0.005" rgba="0 0 0 0"/>
@@ -381,7 +363,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     """
     for i in range(N):
         XML += f"""
-        <position name="motor_{i}" joint="motor_{i}" kp="{args['motor_kp']}" kv="{args['motor_kv']}" ctrllimited="true" ctrlrange="-{args['motor_ctrlrange']:.4f} {args['motor_ctrlrange']:.4f}" forcerange="-{args['motor_forcerange']} {args['motor_forcerange']}"/>
+        <position name="motor_{i}" joint="motor_{i}" kp="{args['motor_kp']}" kv="{args['motor_kv']}" ctrllimited="true" ctrlrange="-{np.degrees(args['motor_ctrlrange']):.4f} {np.degrees(args['motor_ctrlrange']):.4f}" forcerange="-{args['motor_forcerange']} {args['motor_forcerange']}"/>
         """
 
     XML += """

@@ -23,9 +23,9 @@ WIN  = (2.0, 12.0)   # window over which RMSE is computed (whole-run metric)
 ZOOM = (3.0, 5.0)    # x-axis view: a representative 2 s excerpt, re-zeroed so the axis reads 0-2 s
 
 MODELS = {
-    "old": dict(xml=str(FC/"SOFI_cpg.xml"), dt_sub=0,  c="#D55E00", ls="-",
+    "old": dict(xml=str(FC/"SOFI.xml"), dt_sub=0,  c="#D55E00", ls="-",
                 lab="old motor model + E13a fluid", short="Idealized model"),
-    "new": dict(xml=str(FC/"SOFI_da.xml"),  dt_sub=14, c="#0072B2", ls="-",
+    "new": dict(xml=str(FC/"SOFI_motorid.xml"),  dt_sub=14, c="#0072B2", ls="-",
                 lab="new motor model + refitB fluid", short="Identified model"),
 }
 

@@ -34,8 +34,8 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.lines import Line2D
 
 import sys as _sys
-from _paths import ANALYSIS as _ANALYSIS, OUT as _OUT
-_sys.path.insert(0, str(_ANALYSIS))   # plot_nav_collage lives in fishdeploy/analysis
+from _paths import ANALYSIS as _ANALYSIS, OUT as _OUT, FISHDEPLOY as _FISHDEPLOY
+_sys.path.insert(0, str(_FISHDEPLOY / "analysis"))   # plot_nav_collage lives in fishdeploy/analysis (the code; its data is under data/)
 from paper_style import use_paper_style, save, FULL, PANEL_PT
 import fig_figure8_paper as F8
 import plot_nav_collage as NAV                  # for the per-run distance/time annotation only
