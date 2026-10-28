@@ -57,7 +57,8 @@ fin       0.170727  0.003855 18.310332 10.148229  5.951302
 ```
 
 These are `SYSTEMPARAMETERS["fluidCoef"]` in `geometry/auto_SOFI_cpg.py` and `fluid_tuning.coefficients`
-in `sysid/fluid/field2sim.yml`. `sysid/fluid/FLUID_COEFFICIENTS.md` is the log of every attempt (E1 to
+in `sysid/fluid/field2sim.yml`. Note that `opt_field2sim.py` writes its best coefficients back into `field2sim.yml`
+when it finishes; `git checkout sysid/fluid/field2sim.yml` restores E13a. `sysid/fluid/FLUID_COEFFICIENTS.md` is the log of every attempt (E1 to
 E13) with what changed between them. Paper Fig. 5 (`paper/fig5_fluidfit_paper.py`) replays the fitted and
 held-out runs through this model.
 
