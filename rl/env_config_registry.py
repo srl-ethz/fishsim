@@ -10,7 +10,6 @@ from .environments.cpg import env_sofi_full_curriculum_cpg
 from .environments.da import env_sofi_da_phase1_1_noiseAndDelay as env_sofi_da_p1_1
 from .environments.da import env_sofi_da_phase1_2_physicsDR as env_sofi_da_p1_2
 from .environments.da import env_sofi_full_curriculum_da as env_sofi_da_motorid_v1
-from .environments.da import env_sofi_full_curriculum_da_e13a as env_sofi_da_motorid_v1_e13a
 
 # Physics models — one frozen generator per direction (see CANONICAL_POLICIES.md)
 from geometry.auto_SOFI_cpg import SYSTEMPARAMETERS as SOFI_CPG_PARAMS
@@ -45,10 +44,6 @@ ENVIRONMENT_REGISTRY = {
     },
     "sofi_full_curriculum_da": {  # CANONICAL DA — produces sofi_da_rl_policy
         "entry_point": env_sofi_da_motorid_v1.FishEnv,
-        "system_parameters": SOFI_DA_PARAMS,
-    },
-    "sofi_full_curriculum_da_e13a": {  # same motor/curriculum, E13a fluid (A/B vs refitB)
-        "entry_point": env_sofi_da_motorid_v1_e13a.FishEnv,
         "system_parameters": SOFI_DA_PARAMS,
     },
 }

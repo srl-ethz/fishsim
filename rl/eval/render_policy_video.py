@@ -38,16 +38,11 @@ def build_render_env(env_name: str, stage_idx: int,
                      alpha_backward: float = 0.0,
                      success_radius: float = 0.1,
                      lpf_cutoff_hz: float = 0.0,
-                     gear_compliance_hz: float = 0.0,
-                     gear_compliance_order: int = 1) -> gym.Env:
+) -> gym.Env:
     register_environments(max_episode_steps=2000)
     extra = {}
     if lpf_cutoff_hz > 0:
         extra["lpf_cutoff_hz"] = lpf_cutoff_hz
-    if gear_compliance_hz > 0:
-        extra["gear_compliance_hz"] = gear_compliance_hz
-    if gear_compliance_order > 1:
-        extra["gear_compliance_order"] = gear_compliance_order
     env = gym.make(
         f"gymnasium_env/{env_name}",
         frame_skip=20,
@@ -171,10 +166,6 @@ def main():
     parser.add_argument("--success_radius", type=float, default=0.1)
     parser.add_argument("--lpf_cutoff_hz",  type=float, default=0.0,
                         help="LPF cutoff (Hz). MUST match training run.")
-    parser.add_argument("--gear_compliance_hz", type=float, default=0.0,
-                        help="Gear compliance bandwidth (Hz). S03+ uses 3.8.")
-    parser.add_argument("--gear_compliance_order", type=int, default=1,
-                        help="Gear compliance filter order (1 or 2). S04+ uses 2.")
     args = parser.parse_args()
 
     env = build_render_env(
@@ -185,8 +176,6 @@ def main():
         alpha_backward=args.alpha_backward,
         success_radius=args.success_radius,
         lpf_cutoff_hz=args.lpf_cutoff_hz,
-        gear_compliance_hz=args.gear_compliance_hz,
-        gear_compliance_order=args.gear_compliance_order,
     )
 
     model = SAC.load(args.model_path, env=env, device="cpu")

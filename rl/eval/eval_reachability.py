@@ -80,20 +80,11 @@ def build_env(env_name: str, r_min, r_max, stage_idx: int = 0,
               alpha_heading: float = 0.0,
               success_radius: float = 0.1,
               lpf_cutoff_hz: float = 0.0,
-              lpf_order: int = 1,
-              gear_compliance_hz: float = 0.0,
-              gear_compliance_order: int = 1,
               use_distance_reward: bool = False) -> gym.Env:
     register_environments(max_episode_steps=2000)
     extra_kwargs = {}
     if lpf_cutoff_hz > 0.0:
         extra_kwargs["lpf_cutoff_hz"] = lpf_cutoff_hz
-    if lpf_order > 1:
-        extra_kwargs["lpf_order"] = lpf_order
-    if gear_compliance_hz > 0.0:
-        extra_kwargs["gear_compliance_hz"] = gear_compliance_hz
-    if gear_compliance_order > 1:
-        extra_kwargs["gear_compliance_order"] = gear_compliance_order
     if use_distance_reward:
         extra_kwargs["use_distance_reward"] = True
     env = gym.make(
@@ -112,7 +103,6 @@ def build_env(env_name: str, r_min, r_max, stage_idx: int = 0,
     print(f"Env reward params: rewardSuccess={reward_success}, "
           f"alpha_jerk={alpha_jerk}, alpha_heading={alpha_heading}, "
           f"success_radius={success_radius}, lpf_cutoff_hz={lpf_cutoff_hz}, "
-          f"gear_compliance_hz={gear_compliance_hz}, gear_compliance_order={gear_compliance_order}, "
           f"use_distance_reward={use_distance_reward}")
     raw = env.unwrapped
 
@@ -512,13 +502,6 @@ def main():
                         help="Success distance threshold in meters (default: 0.1)")
     parser.add_argument("--lpf_cutoff_hz", type=float, default=0.0,
                         help="LPF cutoff frequency (Hz); 0 = no filter. MUST match training run.")
-    parser.add_argument("--lpf_order", type=int, default=1,
-                        help="Setpoint LPF order: 1=EMA, 2=Butterworth. MUST match training run.")
-    parser.add_argument("--gear_compliance_hz", type=float, default=0.0,
-                        help="Gear compliance bandwidth (Hz); 0 = disabled. MUST match training run. "
-                             "SDA-S03+ uses 3.8 Hz (physics-derived).")
-    parser.add_argument("--gear_compliance_order", type=int, default=1,
-                        help="Gear compliance filter order (1=1st-order EMA, 2=cascaded). SDA-S04+ uses 2.")
     parser.add_argument("--use_distance_reward", action="store_true", default=False,
                         help="Use CPG-style distance reward (r=-dist+success). MUST match training.")
     parser.add_argument("--verbose",       action="store_true",
@@ -547,9 +530,6 @@ def main():
                     alpha_heading=args.alpha_heading,
                     success_radius=args.success_radius,
                     lpf_cutoff_hz=args.lpf_cutoff_hz,
-                    lpf_order=args.lpf_order,
-                    gear_compliance_hz=args.gear_compliance_hz,
-                    gear_compliance_order=args.gear_compliance_order,
                     use_distance_reward=args.use_distance_reward)
     model = SAC.load(args.model_path, env=env)
 

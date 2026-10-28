@@ -1,16 +1,15 @@
 project: fishsim
 entity: srl_ethz
-name: sofi_da_lpf_refitB
+name: sofi_da_fof
 
-# DA-MotorID + 4.5 Hz setpoint LPF, refitB fluid (A/B partner: sweep_da_lpf_e13a).
+# Direct action with a first-order setpoint filter at 4.5 Hz ("DA-FOF" in the paper, Fig. 10), refitB fluid.
 # Motivation (2026-06-25): without an LPF the DA policy commands >5 Hz setpoints
 # (65% of power, 44% >8 Hz) the joint-damped motor can't track, producing tiny fast
 # tail flutter that the velocity²-scaled fluid coeffs turn into non-physical thrust
 # (fish moves ~1.3 m with almost no tail motion). The 4.5 Hz 1st-order setpoint LPF
 # removes the high-freq command (cuts >8 Hz content 46%→3%), forcing realistic,
 # low-frequency, large-amplitude strokes in the band where the fluid was tuned (≤4 Hz).
-# Everything else = the canonical DA recipe (re-ID joint-damping motor + refitB fluid +
-# 10-stage curriculum). See CANONICAL_POLICIES.md and the LPF restore in env_sofi_da.py.
+# Everything else = the DA recipe of sweep_da.yml (re-identified motor + refitB fluid + 10-stage curriculum).
 
 method: bayes
 metric:

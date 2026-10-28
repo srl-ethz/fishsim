@@ -57,6 +57,7 @@ right are both right), and a deterministic evaluation underestimates the policy 
 with motor history), trained with `rl/sweepconfigs/sweep_da.yml` against `geometry/auto_SOFI_da.py` (refitB
 fluid, identified motor). The resulting policy (`policies/sofi_da_rl_policy.zip`) swims in simulation by
 exploiting high-frequency tail flicks that the stateless fluid model rewards (paper Fig. 9 and Fig. 10).
-`sweep_da_lpf_refitB.yml` adds a 4.5 Hz low-pass filter on the setpoint (`--lpf_cutoff_hz`), which removes
-the exploit; `docs/sim2real_motor_fluid_lpf_findings.md` has the analysis. `docs/CURRICULUM_DESIGN.md` and
+`sweep_da_fof.yml` is the same recipe with a first-order 4.5 Hz low-pass filter on the setpoint
+(`--lpf_cutoff_hz 4.5`), the "DA-FOF" policy whose gait is the third trace of Fig. 10
+(`policies/sofi_da_fof_rl_policy.zip`); `docs/sim2real_motor_fluid_lpf_findings.md` has the analysis. `docs/CURRICULUM_DESIGN.md` and
 `docs/RL_QUICKREF.md` are the working notes behind the curriculum.

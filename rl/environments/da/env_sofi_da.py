@@ -104,9 +104,6 @@ class BaseFishEnvDA(MujocoEnv, utils.EzPickle):
         success_radius=0.1,
         use_distance_reward=False,
         lpf_cutoff_hz=0.0,
-        lpf_order=1,
-        gear_compliance_hz=0.0,
-        gear_compliance_order=1,
         motor_deadtime_steps=0,
         motorVelRange=None,
         actionMultiplier=None,
@@ -145,39 +142,17 @@ class BaseFishEnvDA(MujocoEnv, utils.EzPickle):
         self._ctrl_buffer: deque = deque([0.0] * (self._deadtime_steps + 1),
                                          maxlen=self._deadtime_steps + 1)
 
-        # Low-pass filter on the motor SETPOINT. Crushes the high-frequency command
-        # the policy would otherwise use to exploit the velocity²-scaled fluid coeffs
-        # (forward AND backward — see docs/sim2real_motor_fluid_lpf_findings.md; the
-        # backward gait is a fast small-amplitude flutter, 50% of its motor-velocity
-        # power >4.5 Hz). Velocity-capping (kv/b) ≠ frequency-capping, so the LPF is
-        # the lever that band-limits the command to the realistic ≤~4 Hz swim regime.
-        #
-        #   lpf_order=1 → 1st-order EMA:  ã = (1−α)ã_{-1} + α·a ,  α = ωc·T/(1+ωc·T)
-        #   lpf_order=2 → 2nd-order Butterworth biquad (−12 dB/oct, flat passband) —
-        #                 PREFERRED: preserves 1–4 Hz, hard rolloff above (8 Hz power
-        #                 ~7× lower than 1st-order). RBJ low-pass, Q=1/√2.
-        #   lpf_cutoff_hz=0 → pass-through (legacy DA behaviour).
+        # First-order low-pass filter on the motor SETPOINT (the "DA-FOF" policy of the paper).
+        # It removes the high-frequency command the policy would otherwise use to exploit the
+        # velocity²-scaled fluid coefficients (see docs/sim2real_motor_fluid_lpf_findings.md) and
+        # band-limits the command to the ≤4 Hz regime the fluid model was identified on.
+        #   ã = (1−α)·ã_{-1} + α·a ,  α = ωc·T/(1+ωc·T);  lpf_cutoff_hz=0 → pass-through (plain DA).
         _fc = float(lpf_cutoff_hz)
         _T  = float(system_parameters.get("dt", 0.001)) * frame_skip   # control-step period
         self._lpf_cutoff_hz: float = _fc
-        self._lpf_order:     int   = int(lpf_order)
         _wc = 2.0 * np.pi * _fc
         self._lpf_alpha: float = (_wc * _T / (1.0 + _wc * _T)) if _fc > 0.0 else 1.0
-        self._filtered_action: float = 0.0          # 1st-order state ã_{-1}
-        # 2nd-order Butterworth biquad coefficients + state (x[-1],x[-2],y[-1],y[-2]).
-        self._biquad = None
-        if self._lpf_order >= 2 and _fc > 0.0:
-            _fs = 1.0 / _T
-            _k  = np.tan(np.pi * _fc / _fs); _Q = 1.0 / np.sqrt(2.0)
-            _n  = 1.0 / (1.0 + _k / _Q + _k * _k)
-            self._biquad = (_k * _k * _n, 2.0 * _k * _k * _n, _k * _k * _n,
-                            2.0 * (_k * _k - 1.0) * _n, (1.0 - _k / _Q + _k * _k) * _n)
-        self._lpf_x1 = self._lpf_x2 = self._lpf_y1 = self._lpf_y2 = 0.0
-        # Gear-compliance EMA stays REMOVED (the re-identified actuator already models
-        # gearbox velocity saturation); the kwarg is accepted-but-ignored.
-        if float(gear_compliance_hz) > 0.0:
-            import warnings
-            warnings.warn("gear_compliance_hz is a deprecated no-op; ignoring.", stacklevel=2)
+        self._filtered_action: float = 0.0          # filter state ã_{-1}
 
         # EMA state for absolute heading penalty (reset each episode)
         self._last_heading_error: float = 0.0
@@ -272,8 +247,6 @@ class BaseFishEnvDA(MujocoEnv, utils.EzPickle):
             success_radius=success_radius,
             use_distance_reward=use_distance_reward,
             lpf_cutoff_hz=lpf_cutoff_hz,
-            gear_compliance_hz=gear_compliance_hz,
-            gear_compliance_order=gear_compliance_order,
             motor_deadtime_steps=motor_deadtime_steps,
             rewardSuccess=rewardSuccess,
             camera_fps=camera_fps,
@@ -414,22 +387,15 @@ class BaseFishEnvDA(MujocoEnv, utils.EzPickle):
         ])
 
     def _lpf(self, a: float) -> float:
-        """Filter one raw action sample → motor setpoint (1st- or 2nd-order)."""
-        if self._biquad is not None:                 # 2nd-order Butterworth
-            b0, b1, b2, a1, a2 = self._biquad
-            y = (b0 * a + b1 * self._lpf_x1 + b2 * self._lpf_x2
-                 - a1 * self._lpf_y1 - a2 * self._lpf_y2)
-            self._lpf_x2, self._lpf_x1 = self._lpf_x1, a
-            self._lpf_y2, self._lpf_y1 = self._lpf_y1, y
-            return y
+        """Filter one raw action sample → motor setpoint (first-order; α=1 → pass-through)."""
         self._filtered_action = ((1.0 - self._lpf_alpha) * self._filtered_action
-                                 + self._lpf_alpha * a)   # 1st-order EMA (α=1 → pass-through)
+                                 + self._lpf_alpha * a)
         return self._filtered_action
 
     def step(self, action):
         a = float(np.clip(action[0], -1.0, 1.0))
 
-        # Setpoint LPF (1st- or 2nd-order). History stores the FILTERED setpoint so
+        # Setpoint filter. History stores the FILTERED setpoint so
         # the policy observes the actual command, not the raw output it chose.
         filt  = self._lpf(a)
         self._motor_history.append(filt)
@@ -509,8 +475,7 @@ class BaseFishEnvDA(MujocoEnv, utils.EzPickle):
 
     def reset_model(self):
         self._ep_step_count           = 0
-        self._filtered_action         = 0.0   # reset LPF state each episode
-        self._lpf_x1 = self._lpf_x2 = self._lpf_y1 = self._lpf_y2 = 0.0   # biquad state
+        self._filtered_action         = 0.0   # reset filter state each episode
         self._ctrl_buffer = deque([0.0] * (self._deadtime_steps + 1),
                                   maxlen=self._deadtime_steps + 1)
         mh_len = type(self).MOTOR_HISTORY_LEN

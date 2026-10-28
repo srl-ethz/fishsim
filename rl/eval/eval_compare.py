@@ -45,7 +45,7 @@ _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 def build_env(env_name, success_radius, dr, pass_reward_kwargs=False,
               theta_max_deg=None, r_min=None, r_max=None, lpf_cutoff_hz=0.0,
-              lpf_order=1, dr_stage=None):
+              dr_stage=None):
     """Make the env over its full-task range; apply (or disable) domain randomization.
 
     dr=False → nominal/mean physics + clean sensors (vision only, no noise).
@@ -64,8 +64,6 @@ def build_env(env_name, success_radius, dr, pass_reward_kwargs=False,
         make_kwargs.update(rewardSuccess=1000.0, success_radius=success_radius)
     if lpf_cutoff_hz > 0.0:                       # DA setpoint LPF (must match training)
         make_kwargs["lpf_cutoff_hz"] = float(lpf_cutoff_hz)
-    if lpf_order > 1:
-        make_kwargs["lpf_order"] = int(lpf_order)
     env = gym.make(f"gymnasium_env/{env_name}", **make_kwargs)
     raw = env.unwrapped
     stages = raw.CURRICULUM_STAGES
@@ -162,8 +160,6 @@ def main():
     p.add_argument("--lpf_cutoff_hz", type=float, default=0.0,
                    help="Setpoint LPF cutoff for the DA env (Hz). MUST match the DA "
                         "policy's training value (e.g. 4.5 for the LPF sweeps); 0 = off.")
-    p.add_argument("--lpf_order", type=int, default=1,
-                   help="DA setpoint LPF order (1=EMA, 2=Butterworth); MUST match training.")
     p.add_argument("--dr_stage", type=int, default=None,
                    help="With --dr, evaluate at this curriculum stage index instead of the "
                         "final stage — applied to BOTH envs (e.g. 6 = the highest DR stage "
@@ -184,7 +180,6 @@ def main():
         env = build_env(env_name, sr, args.dr, pass_reward_kwargs=(tag == "DA"),
                         theta_max_deg=args.theta_max_deg, r_min=args.r_min, r_max=args.r_max,
                         lpf_cutoff_hz=(args.lpf_cutoff_hz if tag == "DA" else 0.0),
-                        lpf_order=(args.lpf_order if tag == "DA" else 1),
                         dr_stage=args.dr_stage)
         model = SAC.load(model_path, env=env)
         results = run_episodes(model, env, args.n_episodes, args.seed,

@@ -50,8 +50,8 @@ make -C paper figures check                                       # 5. rebuild t
 |---|---|
 | `geometry/` | `auto_SOFI_cpg.py`: the identified model (E13a fluid, measured hinge stiffness and damping, CAD inertia, kp 800 servo) that generates `SOFI_cpg.xml`. `auto_SOFI_da.py`: the direct-action variant (refitB fluid, identified servo). `auto_SOFI_field2sim.py`: the two-fish model the fluid fit runs. `meshes/`: the four CAD meshes the models load |
 | `sysid/` | `tail_stiffness/`: the dynamic stiffness fit (paper Fig. 4). `fluid/`: the fluid-coefficient fit by ghost-and-twin replay with CMA-ES, its config, and the log of every attempt. `motor/`: the sim-versus-real motor study (paper Table "motor") |
-| `rl/` | `environments/cpg/`: the Gymnasium environment with CPG actions and the sensor-noise, physics-randomisation and target curriculum stages. `environments/da/`: the direct-action comparison. `models/`: sensor and physics randomisation. `train_rl_curriculum.py`, `opt_hyperRL.py`, `sweepconfigs/`, `eval/` |
-| `policies/` | The deployed policy (md5 `7bbe08b8`) and the direct-action policy, with provenance |
+| `rl/` | `environments/cpg/`: the Gymnasium environment with CPG actions and the sensor-noise, physics-randomisation and target curriculum stages. `environments/da/`: the direct-action comparison (with and without the setpoint filter). `models/`: sensor and physics randomisation. `train_rl_curriculum.py`, `opt_hyperRL.py`, the three sweeps in `sweepconfigs/`, `eval/` |
+| `policies/` | The three policies of the paper with provenance: the deployed trajectory-generator policy (md5 `7bbe08b8`), direct action, and direct action with a setpoint filter |
 | `paper/` | One script per figure, `make figures`, `make check`, the static images, the cached simulation inputs, the submitted PDFs as reference |
 | `docs/` | `SYSID.md`, `TRAINING.md`, and the working notes on the curriculum and on the direct-action exploit |
 | `tests/` | unit tests of the motor study |
@@ -59,9 +59,11 @@ make -C paper figures check                                       # 5. rebuild t
 ## Reproducibility status
 
 Rebuilt from a clean clone of this branch and of fishdeploy on 2026-10-28 and compared with the PDFs as
-submitted (`make -C paper check`): nine of the ten figures match in text and byte size; Fig. 5 (the fluid-fit
-replay) matches in text, differs by 28 bytes, and renders pixel-identical except for sub-pixel shifts along
-the simulated trajectory, i.e. floating-point differences of a MuJoCo replay made on another machine.
+submitted (`make -C paper check`): seven of the ten figures match in text and byte size. Figs 3 and 7 match in
+text and render pixel-identical; their one and 25 bytes of difference come from the version of the library
+that re-encodes the embedded photographs. Fig. 5 (the fluid-fit replay) matches in text, differs by 28 bytes,
+and renders pixel-identical except for sub-pixel shifts along the simulated trajectory, i.e. floating-point
+differences of a MuJoCo replay made on another machine.
 `geometry/SOFI_cpg.xml` and `SOFI_da.xml` regenerate byte-identically from their generators, and the tail
 stiffness fit reproduces k_eff = 0.98 N m/rad.
 

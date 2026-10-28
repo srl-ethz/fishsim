@@ -116,8 +116,8 @@ to see whether LPF-constrained policies swim realistically, and which fluid gene
 
 | Sweep | Env | Fluid |
 |---|---|---|
-| `rl/sweepconfigs/sweep_da_lpf_refitB.yml` | `sofi_full_curriculum_da` | refitB_fwdonly |
-| `rl/sweepconfigs/sweep_da_lpf_e13a.yml` | `sofi_full_curriculum_da_e13a` | E13a |
+| `rl/sweepconfigs/sweep_da_fof.yml` (was `sweep_da_lpf_refitB.yml`) | `sofi_full_curriculum_da` | refitB_fwdonly |
+| `sweep_da_lpf_e13a.yml` (A/B partner, not in this repo) | `sofi_full_curriculum_da` with the E13a fluid | E13a |
 
 **Hypothesis:** with the setpoint constrained to ≤4.5 Hz, the policy can no longer fabricate
 thrust from high-frequency flicks, so it must learn realistic low-frequency, large-amplitude

@@ -9,4 +9,3 @@ from . import env_sofi_da
 from . import env_sofi_da_phase1_1_noiseAndDelay
 from . import env_sofi_da_phase1_2_physicsDR
 from . import env_sofi_full_curriculum_da
-from . import env_sofi_full_curriculum_da_e13a

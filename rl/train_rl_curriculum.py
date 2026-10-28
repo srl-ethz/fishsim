@@ -356,9 +356,6 @@ def main(args):
     camera_fps             = float(getattr(args, "camera_fps",             30.0))
     use_mirror             = bool(getattr(args, "mirror_replay_buffer",    False))
     lpf_cutoff_hz          = float(getattr(args, "lpf_cutoff_hz",          0.0))
-    lpf_order              = int(getattr(args,   "lpf_order",               1))
-    gear_compliance_hz     = float(getattr(args, "gear_compliance_hz",     0.0))
-    gear_compliance_order  = int(getattr(args,   "gear_compliance_order",   1))
     motor_deadtime_steps   = int(getattr(args,   "motor_deadtime_steps",    0))
     use_distance_reward    = bool(getattr(args, "use_distance_reward",     False))
     reward_kwargs = {}
@@ -373,9 +370,6 @@ def main(args):
     if alpha_backward         > 0.0:  reward_kwargs["alpha_backward"]         = alpha_backward
     if backward_vel_limit     > 0.0:  reward_kwargs["backward_vel_limit"]     = backward_vel_limit
     if lpf_cutoff_hz          > 0.0:  reward_kwargs["lpf_cutoff_hz"]          = lpf_cutoff_hz
-    if lpf_order              > 1:    reward_kwargs["lpf_order"]              = lpf_order
-    if gear_compliance_hz     > 0.0:  reward_kwargs["gear_compliance_hz"]     = gear_compliance_hz
-    if gear_compliance_order  > 1:    reward_kwargs["gear_compliance_order"]  = gear_compliance_order
     if motor_deadtime_steps   > 0:    reward_kwargs["motor_deadtime_steps"]   = motor_deadtime_steps
     if use_distance_reward:           reward_kwargs["use_distance_reward"]     = True
     reward_kwargs["success_radius"] = success_radius
@@ -745,13 +739,7 @@ if __name__ == "__main__":
     parser.add_argument("--backward_vel_limit", type=float, default=0.0,
                         help="Terminate episode if backward velocity exceeds this (m/s). 0=disabled.")
     parser.add_argument("--lpf_cutoff_hz",  type=float, default=0.0,
-                        help="Low-pass filter cutoff for motor setpoints (Hz). 0=disabled. SDA regime uses 4–8 Hz.")
-    parser.add_argument("--lpf_order",      type=int, default=1,
-                        help="Setpoint LPF order: 1=EMA, 2=Butterworth biquad (steeper, preferred).")
-    parser.add_argument("--gear_compliance_hz", type=float, default=0.0,
-                        help="Gear compliance bandwidth (Hz). 0=disabled. Physics-derived value: 3.8 Hz (200:1 gearbox).")
-    parser.add_argument("--gear_compliance_order", type=int, default=1,
-                        help="Gear compliance filter order (1=1st-order EMA, 2=cascaded 2nd-order). S04+ uses 2.")
+                        help="First-order low-pass filter on the motor setpoint (Hz). 0 = off. The DA-FOF policy of the paper used 4.5 Hz.")
     parser.add_argument("--motor_deadtime_steps", type=int, default=0,
                         help="Motor transport delay in physics steps (1ms each). Identified ~42 (≈2 policy steps). 0=disabled.")
     parser.add_argument("--use_distance_reward", action="store_true", default=False,

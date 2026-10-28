@@ -18,7 +18,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rl.env_config_registry import get_system_parameters
-from rl import train_rl, train_rl_curriculum
+from rl import train_rl_curriculum
 
 
 # Set wandb environment variable
@@ -63,10 +63,7 @@ def run_sweep():
         })
 
         ### Run training and testing
-        if "curriculum" in env_name or "phase2" in env_name or "sofi_da" in env_name:
-            log = train_rl_curriculum.main(wandb.config)
-        else:
-            log = train_rl.main(wandb.config)
+        log = train_rl_curriculum.main(wandb.config)
 
         # Some training entrypoints (e.g., the curriculum runner) may return None.
         # Recover rewards/figures from the log directory when possible so sweeps

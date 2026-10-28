@@ -122,6 +122,15 @@ class BaseFishEnv(MujocoEnv, utils.EzPickle):
         self._action_history: list = []
         self._step_noise_log: dict = {}
 
+        # Reward and sensor options of the direct-action environments (rl/environments/da/). The
+        # trainer and the evaluators pass them for both families; the CPG environment keeps its own
+        # built-in values (success inside 0.05 m, +1000 on success, 30 fps camera model) exactly as
+        # the deployed policy was trained, so they are accepted here and ignored.
+        for _k in ("success_radius", "rewardSuccess", "camera_fps", "alpha_jerk", "alpha_heading",
+                   "alpha_dist", "alpha_fwd", "alpha_backward", "backward_vel_limit", "lpf_cutoff_hz",
+                   "motor_deadtime_steps", "use_distance_reward"):
+            kwargs.pop(_k, None)
+
         utils.EzPickle.__init__(
             self,
             system_parameters=system_parameters,
