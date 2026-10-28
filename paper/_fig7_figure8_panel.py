@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fig: the figure-eight pursuit run (figure_eight_6): fish and target paths over time.
+"""The figure-eight pursuit panel of Fig. 7 (run figure_eight_6): fish and target paths over time.
 
 The point-target policy tracking a target moved by hand along a figure-eight for ~75 s.
 Fish path coloured by time (plasma reversed: yellow at t = 0 to dark blue at the end, the same
@@ -10,9 +10,9 @@ time; the fish start is the origin. Same geometry as panel (f) of the deployment
 (plot_nav_collage.py): the overhead pixel track scaled to metres with the m/px factor of
 insane_run_8 (this run has no metric AprilTag world track), image y flipped so up is up.
 
-Standalone:  python fig_figure8_paper.py   -> out/fig_figure8_paper.pdf (single column)
-As a panel:  from fig_figure8_paper import draw; draw(fig, ax, legend="axes")
-             (used by fig_deploy_collage_paper.py for panel (f) of the deployment collage)
+Standalone:  python _fig7_figure8_panel.py   -> out/fig7_figure8_panel.pdf (single column)
+As a panel:  from _fig7_figure8_panel import draw; draw(fig, ax, legend="axes")
+             (used by fig7_deploy_collage.py for panel (f) of the deployment collage)
 
 Data: analysis_20260520/cache/figure_eight_6.npz (+ insane_run_8.npz for the scale).
 7 pt type, >= 1 pt lines, built at final size.
@@ -176,5 +176,5 @@ if __name__ == "__main__":
     use_paper_style()
     fig, ax = plt.subplots(figsize=size(1.0, aspect=0.66), layout="constrained")
     draw(fig, ax, legend="fig")
-    out = save(fig, "fig_figure8_paper", expect="col")
+    out = save(fig, "fig7_figure8_panel", expect="col")
     print("saved", out)

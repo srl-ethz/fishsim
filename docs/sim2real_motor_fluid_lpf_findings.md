@@ -1,7 +1,7 @@
 # Sim2Real Findings: Motor Model, Fluid Coefficients, and the High-Frequency Exploit
 
-**Date:** 2026-06-25  ·  **Scope:** why the latest Direct-Action policy swims unrealistically,
-and the fix. Companion to `CANONICAL_POLICIES.md`.
+**Date:** 2026-06-25  ·  **Scope:** why the direct-action policy swims unrealistically, and the fix
+(the DA-FOF policy of the paper, Fig. 9 and Fig. 10).
 
 ---
 
@@ -21,7 +21,7 @@ where the fluid model is actually valid.
 ## 1. The motor model
 
 **What it is.** A MuJoCo position actuator standing in for the real Dynamixel + 200:1 gearbox +
-tendon drive, re-identified open-loop on RL-deployment + field data (`fluidID/scripts/23_motor_id.py`,
+tendon drive, re-identified on the curated deployment segments (`sysid/closed_loop/fit_motor.py`,
 2026-06-19, joint-damping/kv-free fit):
 
 - `kp = 5.41`, `kv = 0`
@@ -110,7 +110,7 @@ fluid model is valid (and where the real fish / CPG actually operate, ≤ ~4 Hz)
 - **4.5 Hz:** passes the ≤4 Hz CPG-band swimming (~0.75 gain) while cutting the exploit band hard.
   Verified — at 4.5 Hz the LPF drops setpoint power **>8 Hz from 46 % → 3 %** (and >5 Hz 69 % → 23 %).
 
-### Validation in progress
+### Validation
 Two from-scratch sweeps (6 runs each, both with the 4.5 Hz LPF + re-ID motor + 10-stage curriculum)
 to see whether LPF-constrained policies swim realistically, and which fluid generalizes:
 
@@ -119,11 +119,10 @@ to see whether LPF-constrained policies swim realistically, and which fluid gene
 | `rl/sweepconfigs/sweep_da_fof.yml` (was `sweep_da_lpf_refitB.yml`) | `sofi_full_curriculum_da` | refitB_fwdonly |
 | `sweep_da_lpf_e13a.yml` (A/B partner, not in this repo) | `sofi_full_curriculum_da` with the E13a fluid | E13a |
 
-**Hypothesis:** with the setpoint constrained to ≤4.5 Hz, the policy can no longer fabricate
-thrust from high-frequency flicks, so it must learn realistic low-frequency, large-amplitude
-strokes — the regime where the fluid coefficients were actually tuned — and should transfer
-better. The A/B tells us whether the inflated-but-anti-backward refitB or the original E13a fluid
-behaves better under the frequency cap.
+**Outcome:** the refitB sweep produced `policies/sofi_da_fof_rl_policy.zip`, the DA-FOF policy of the paper:
+with the setpoint constrained to ≤4.5 Hz the policy can no longer fabricate thrust from high-frequency
+flicks and learns a lower-frequency, larger-amplitude stroke (Fig. 10, third trace; Fig. 9 shows where its
+tail-velocity power sits). It still swims backward under domain randomisation in some episodes, see §5.
 
 ---
 
@@ -137,58 +136,17 @@ regime** (the setpoint LPF — done here), and/or (b) **a fluid model with state
 
 ---
 
-## 5. Backward-swimming mechanism + the 2nd-order fix (2026-06-26)
+## 5. What remained: backward swimming (2026-06-26)
 
-The 1st-order 4.5 Hz LPF (§3) trained good policies (refitB → stage 8, 92% @ stage-8 DR) but
-they **still swim backward** under DR. We isolated the mechanism with
-`rl/eval/analyze_backward_mechanism.py` (50 ep/policy, DR at each policy's reached stage,
-capturing motor command, *actual* motor angle/velocity, passive-tail deflection, fwd/bwd velocity).
+The DA-FOF policy still swims backward in about one episode in five under domain randomisation. The
+mechanism was isolated by comparing its backward and forward episodes: backward swimming is a fast,
+small-amplitude flutter (half of the motor-velocity power above 4.5 Hz, against 7 % when swimming
+forward) that the velocity-squared fluid rectifies into reverse thrust. The first-order filter is too
+soft to remove it, because its velocity transfer `g(f)·f` keeps rising with frequency. The CPG stack is
+immune by construction: its oscillator frequency is capped at 4 Hz, so the flutter is not in its action
+space, which is also why the direct-action stack is so much harder to train on the same plant.
 
-### The mechanism — backward IS the residual exploit
-Comparing DA-refitB's **backward** vs its own **forward** episodes:
-
-| DA-refitB (DR) | motor amp p2p | tail-beat | **motor-VELOCITY power >4.5 Hz** | raw action >4.5 Hz | post-LPF cmd >4.5 Hz | swim speed |
-|---|---|---|---|---|---|---|
-| **Backward** (10/50) | 0.82 rad | 0.69 Hz | **50%** | 64% | 28% | −0.059 |
-| Forward (36/50) | 1.41 rad | 1.10 Hz | **7%** | 16% | 4% | +0.159 |
-
-Backward swimming = **fast, small-amplitude flutter**: half the energy of the motor *velocity* sits
-above 4.5 Hz (vs 7% when swimming forward), and since fluid force ∝ velocity², that rectifies into
-reverse thrust. The 1st-order LPF (−3 dB at 4.5 Hz, gentle 6 dB/oct) is **too soft** to remove it.
-Forward DA, by contrast, is a clean CPG-like gait (~1.1 Hz, large amplitude).
-
-### Why CPG is immune
-CPG's 6-D action drives a smooth oscillator whose frequency is **hard-capped at OMEGA_MAX = 8π =
-4 Hz** — it *structurally cannot* command a >4.5 Hz flutter. Its rare backward episode (1/50) is a
-deliberate **large-amplitude, low-freq reversed traveling wave** (1.58 rad, 0.32 Hz), not flutter.
-This is also **why DA is so much harder to train than CPG**: same plant (1 driven `motor_0` + 5
-passive tail segments), but DA's raw 50 Hz setpoint admits arbitrary high frequencies (bounded only
-by a soft LPF), so the reverse-thrust flutter is an easy local optimum; CPG's action space is
-band-limited and shaped around realistic gaits, so the exploit is unreachable.
-
-### The fix — 2nd-order Butterworth, the *velocity-transfer* argument
-The right lens is not the amplitude response but the **velocity transfer** `g(f)·f` (∝ tail velocity
-per unit command, the quantity the fluid squares). Measured on the env filters (fs = 50 Hz):
-
-| filter | 1 Hz | 2 | 3 | 4 | 4.5 | 6 | 8 | 10 | >8 Hz power |
-|---|---|---|---|---|---|---|---|---|---|
-| **gain** 1st @4.5 | 0.97 | 0.87 | 0.77 | 0.67 | 0.63 | 0.52 | 0.42 | 0.36 | 0.180 |
-| **gain** 2nd Butter @3.5 | 1.00 | 0.95 | 0.81 | 0.60 | 0.51 | 0.30 | 0.16 | 0.09 | **0.027** |
-| **vel `g·f`** 1st @4.5 | 1.0 | 1.7 | 2.3 | 2.7 | 2.8 | 3.1 | **3.4** | **3.6** | — |
-| **vel `g·f`** 2nd @3.5 | 1.0 | 1.9 | 2.4 | 2.4 | 2.3 | 1.8 | 1.3 | 0.9 | — |
-
-The 1st-order filter's velocity transfer **keeps rising with frequency** (peaks at the top of the
-band) → RL is *rewarded* for high-frequency flutter. The 2nd-order Butterworth @3.5 Hz **peaks at
-3–4 Hz then rolls off** → the most velocity-productive motion is now the realistic 1–4 Hz stroke, and
-flutter is no longer the path of least resistance. It also preserves the 1–3 Hz swim band *better*
-than the old filter (flat passband) while crushing >8 Hz power **6.8×**. Cutoff 3.5 Hz keeps 4 Hz
-"possible" (0.60) per the design target (1–3 Hz fully, ≤4 Hz allowed, >4.5 Hz crushed).
-
-**Implementation:** `rl/environments/da/env_sofi_da.py` — `lpf_order` (1 = EMA, 2 = RBJ Butterworth
-biquad, Q = 1/√2); plumbed through `train_rl_curriculum.py` and all eval paths
-(`eval_reachability`, `eval_compare`, `fetch_and_test`/`test_RLtraj`) so evals stay faithful.
-
-**Final sweep:** `rl/sweepconfigs/sweep_da_lpf2_refitB.yml` (`name: sofi_da_lpf2_refitB`) — refitB
-fluid + `lpf_cutoff_hz: 3.5`, `lpf_order: 2`, everything else = the proven DA recipe. If backward
-still survives, the next lever is a small `alpha_backward` reward penalty (currently 0); the
-structural alternative is a CPG-style band-limited (oscillator) DA action.
+A second-order Butterworth setpoint filter at 3.5 Hz (whose velocity transfer peaks at 3 to 4 Hz and
+rolls off) was the next thing tried, after the paper's experiments; it is not in the paper and its code is
+not in this repository. The structural alternative is a band-limited, CPG-style action space, which is
+the paper's argument.

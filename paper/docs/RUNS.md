@@ -2,7 +2,7 @@
 
 Session `20260401_first_swim`, 1 April 2026. These are the runs the fluid model was
 identified and validated on, and they are the reference for every open-loop number in the
-paper. Data: `upstream/sofi_control/field_test/data/20260401_first_swim/<run>/processed/03_field2sim_ready.csv`.
+paper. Data: `fishdeploy/data/01_field_openloop_20260401/<run>/processed/03_field2sim_ready.csv`.
 
 ## Conventions
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Fig 10 (reach collage) regenerated at the PAPER's final printed size.
+"""Fig. 8 (reach collage) at the paper's printed size.
 
-Derived from the report generator 05_Report/.../figures/scripts/reach_redetect.py.
+Derived from the report's reach_redetect.py generator.
 The report asset is 12.6 in wide; dropped into the paper's 3.38 in column that is a
 0.27 scale, so its 13 pt titles print at 3.5 pt. This build targets a SINGLE-COLUMN
 figure (3.42 in): ONE dial holding all 30 fixed-target runs (22 static + 8 perturbed
@@ -16,7 +16,7 @@ The earlier full-width build used subplots_adjust + a 10 pt title pad, which pus
 This build uses layout="constrained" and save(expect="col"), so a clipped title now fails.
 
 Writes to 06_Publication/paper/Images/draft/ -- the report's assets are untouched.
-Run via `make figures`, or from .gen/figures:  python fig_reach_collage_paper.py [--split]
+Run via `make figures`, or from paper/:  python fig8_reach_collage.py [--split]
 `--split` writes fig10_reach_collage_split_paper instead: two half-column dials side by side in
 one column, undisturbed runs left and disturbed runs right. `--half` writes
 fig10_reach_collage_half_paper: the single dial with about half of the runs (3 reached and 1
@@ -64,7 +64,7 @@ LS = {"static": "-", "disturbance": (0, (0.6, 2.8))}       # ... and their paths
 ALPHA = {"static": 0.5, "disturbance": 0.75}               # dots read lighter; compensate a little
 _DET = Detector(families="tag36h11", nthreads=4, quad_decimate=1.0, refine_edges=1) if Detector else None
 
-# Headings were precomputed from the raw deployment video (tools/make_heading_cache.py)
+# Headings were precomputed from the raw deployment video (fishdeploy/analysis/make_heading_cache.py)
 # so this figure does not need the 1.5 GB of .avi.  Delete the JSON to recompute.
 import json as _json
 _HCACHE_PATH = os.path.join(ANA, "cache_heading", "initial_heading.json")

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Deployment collage (fig:deploy) at the PAPER's full page width.
+"""Fig. 7 (deployment collage) at the paper's full page width.
 
 Two rounded boxes. (A), left, a tight 2x2 of overhead pool composites of fixed-target runs:
 target reaching, disturbance rejection, out-of-distribution target, backward-velocity start,
 each titled and annotated on the photograph, bottom-right, white on a translucent dark tag,
 with start -> final distance and duration (computed from the tracked paths exactly as the
 report's nav collage does, plot_nav_collage.py). (B), right, the moving-target pursuit: its
-overhead composite above the tracked fish and target paths over time (fig_figure8_paper.draw),
+overhead composite above the tracked fish and target paths over time (_fig7_figure8_panel.draw),
 both untitled: the B letter and the caption name them.
 The path plot's axes box is exactly a grid cell so it lines up with the composites; it has no
 axis numbers or titles (the 1 m grid and the caption give the scale); its time colourbar lies
@@ -37,7 +37,7 @@ import sys as _sys
 from _paths import ANALYSIS as _ANALYSIS, OUT as _OUT, FISHDEPLOY as _FISHDEPLOY
 _sys.path.insert(0, str(_FISHDEPLOY / "analysis"))   # plot_nav_collage lives in fishdeploy/analysis (the code; its data is under data/)
 from paper_style import use_paper_style, save, FULL, PANEL_PT
-import fig_figure8_paper as F8
+import _fig7_figure8_panel as F8
 import plot_nav_collage as NAV                  # for the per-run distance/time annotation only
 use_paper_style()
 plt.rcParams.update({"axes.grid": False})       # image panels: no grid, no spines

@@ -1,0 +1,36 @@
+# The E13a fluid fit: the 15 quasi-steady coefficients of geometry/sofi.py (paper Table I).
+# Summary of the CMA-ES run checkpoint_20260501_044853 (2 028 evaluations, recovered after a crash; the full
+# evaluation log is in the OneDrive archive, 05_fluid_identification/field2sim_cmaes/). The run folders are
+# the six training runs in fishdeploy/data/01_field_openloop_20260401/; eval_sysid.py holds out the other six.
+timestamp: 20260501_044853
+optimizer: cma
+n_coef: 15
+best_loss: 0.040059389100694745
+best_coef:
+- 0.005822321604807238    # c0  head: blunt drag
+- 0.04460026488849578     # c1  head: slender
+- 0.8125766493434751      # c2  head: angular
+- 0.5211117587080233      # c3  head: kutta
+- 0.9027696380538243      # c4  head: magnus
+- 0.039473928790762086    # c5  tail: blunt
+- 0.551233839302586       # c6  tail: slender
+- 5.427544331571564       # c7  tail: angular
+- 0.000956287775535765    # c8  tail: kutta
+- 1.5811760068966598      # c9  tail: magnus
+- 0.17072657854005072     # c10 fin: blunt
+- 0.0038546122407550464   # c11 fin: slender
+- 18.310331667174722      # c12 fin: angular
+- 10.148228937038892      # c13 fin: kutta
+- 5.951302213906541       # c14 fin: magnus
+start_weight: 4.0
+sinusoid_weight: 0.4
+backward_penalty: 0.0
+oscillation_weight: 0.0
+yaw_weight: 0.0
+runs:                      # training runs, folders under fishdeploy/data/01_field_openloop_20260401/
+- run_03_1.0Hz_9.0mm
+- run_04_2.0Hz_9.0mm
+- run_07_3.0Hz_7.0mm
+- run_10_4.0Hz_7.0mm
+- run_11_2.0Hz_12.0mm
+- run_09_2.0Hz_6.0mm_-3.0mm

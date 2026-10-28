@@ -5,7 +5,7 @@ FluidID — Stage 03: Windowed Multiple-Shooting Fluid Coefficient Optimizer
 Identifies 15 fluid coefficients of the single-fish MuJoCo model (geometry/SOFI_motorid.xml)
 by minimizing windowed multiple-shooting trajectory drift on curated real swimming data.
 
-Run from the fishCREATE/ directory:
+Run from the repository root:
 
   # Default: all starts_at_rest=True parts for training, rolling-start for validation
   python sysid/closed_loop/refit_fluid.py
@@ -1054,7 +1054,7 @@ def main() -> None:
     if val_loss is not None:
         print(f"  Val loss (mean) : {val_loss:.6f}")
     print(f"  Saved to        : {result_path}")
-    print(f"\n  Best coef (paste into auto_SOFI_params.yml or SYSTEMPARAMETERS):")
+    print(f"\n  Best coef (paste into geometry/sofi_motorid.py SYSTEMPARAMETERS):")
     coef = best_coef[0]
     print(f"    fluidCoef:")
     labels = [

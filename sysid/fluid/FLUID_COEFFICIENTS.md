@@ -77,12 +77,12 @@ hinge_stiffness values by (k_eff_R4 / k_eff_mujoco_static) to make MuJoCo match 
 
 ```bash
 python digital_twin/orchestrators/opt_field2sim.py \
-    ../sofi_control/field_test/data/20260401_first_swim/run_3_1.0Hz_9.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_4_2.0Hz_9.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_7_3.0Hz_7.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_10_4.0Hz_7.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_11_2.0Hz_12.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_9_2.0Hz_6.0mm_-3.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_03_1.0Hz_9.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_04_2.0Hz_9.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_07_3.0Hz_7.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_10_4.0Hz_7.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_11_2.0Hz_12.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_09_2.0Hz_6.0mm_-3.0mm \
     --n_coef 15 --optimizer cma --physics_bounds --iter 1000 \
     --start_weight 4.0 --random_start --sinusoid_weight 0.4
 ```
@@ -142,12 +142,12 @@ Training runs: same 6 runs as E9/E10/E11 (run\_3, run\_4, run\_7, run\_10, run\_
 
 ```bash
 python digital_twin/orchestrators/opt_field2sim.py \
-    ../sofi_control/field_test/data/20260401_first_swim/run_3_1.0Hz_9.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_4_2.0Hz_9.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_7_3.0Hz_7.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_10_4.0Hz_7.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_11_2.0Hz_12.0mm \
-    ../sofi_control/field_test/data/20260401_first_swim/run_9_2.0Hz_6.0mm_-3.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_03_1.0Hz_9.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_04_2.0Hz_9.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_07_3.0Hz_7.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_10_4.0Hz_7.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_11_2.0Hz_12.0mm \
+    ../fishdeploy/data/01_field_openloop_20260401/run_09_2.0Hz_6.0mm_-3.0mm \
     --n_coef 15 --optimizer cma --physics_bounds --iter 1000 \
     --start_weight 4.0 --sinusoid_weight 0.4 \
     --warm_start Outputs/sysid/checkpoint_20260502_015522.yml

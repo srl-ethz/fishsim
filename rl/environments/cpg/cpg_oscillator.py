@@ -2,7 +2,7 @@ import numpy as np
 
 # Action-space limits: RL [-1, 1] → physical units.
 # These are the TRAINING values of the deployed CPG policy e06g760j (git commit
-# 733f45a, verified via W&B config). NOTE: the deploy side (sofi_control/rl_deploy/
+# 733f45a, verified via W&B config). NOTE: the deploy side (fishdeploy/deploy/
 # pi/policy_runner.py) uses a DIFFERENT scaling (0.30/0.15/12π/0.15) — a deploy-time
 # change, NOT what the policy trained on. For sim reproduction use these training values.
 K1_MAX           = 0.8        # rad   — first-harmonic amplitude

@@ -1,9 +1,9 @@
-"""One figure recipe for the whole paper. Every generator in this folder imports it.
+r"""One figure recipe for the whole paper. Every generator in this folder imports it.
 
 The rules, and where they come from (Mike's review, September 2026):
 
   * ONE family everywhere: Times, set by LaTeX (mathptmx: Times text and maths), so the plots
-    match the Times New Roman of the SVG diagrams (_svg_pipeline.FONT) and the body text of
+    match the Times New Roman of the SVG diagrams (_svg.FONT) and the body text of
     the paper (ieeeconf sets Times). No default DejaVu in one panel and a sans in another.
   * Size: nothing under 8 pt at final print size (the caption size is the floor). Axis labels,
     titles, legends and any text on a panel are LABEL_PT = 9 pt; tick labels TICK_PT = 8 pt;
@@ -81,7 +81,7 @@ LATEX_PREAMBLE = "\n".join([
 
 
 def size(frac=1.0, aspect=0.62, full=False):
-    """Figure size in inches at final on-page size.
+    r"""Figure size in inches at final on-page size.
 
     frac   fraction of the target width (1.0 = fill it)
     aspect height / width

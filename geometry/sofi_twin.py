@@ -1,6 +1,6 @@
 ################################################################################
 # SOFI Field-to-Sim Geometry Generator — standalone variant.
-# Architecture mirrors auto_SOFI_twin.py exactly.
+# Architecture mirrors sofi.py exactly.
 # Field2Sim-specific:
 #   1. Fluid defaults: segmented head_fluid / tail_fluid / fin_fluid classes
 #      driven by a 5/10/15-param vector in SYSTEMPARAMETERS["fluidCoef"].

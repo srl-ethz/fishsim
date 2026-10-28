@@ -18,7 +18,7 @@ transfer function is `k_eff - I_eff * omega^2`, and its intercept at `omega^2 ->
 stiffness (0.98 N m/rad); the imaginary part gives the damping. The effective values are distributed over
 the five hinges with a Euler-Bernoulli profile, giving `hingeStiffness = [2.99, 2.39, 2.13, 1.77, 1.32]`
 N m/rad and `hingeDamping = [0.033, 0.027, 0.024, 0.020, 0.015]` N m s/rad, which `geometry/sofi.py`
-carries. Paper Fig. 4 is this fit (`paper/fig_tailstiff_paper.py`). A dynamic fit was used, not a static one,
+carries. Paper Fig. 4 is this fit (`paper/fig4_tailstiff.py`). A dynamic fit was used, not a static one,
 so friction and backlash average out, and the fit does not depend on the fluid or motor models.
 
 ## 2. Fluid coefficients (the 12 open-loop field runs)
@@ -43,7 +43,7 @@ python sysid/fluid/opt_field2sim.py \
     ../fishdeploy/data/01_field_openloop_20260401/run_09_2.0Hz_6.0mm_-3.0mm \
     --n_coef 15 --optimizer cma --physics_bounds --iter 1000 \
     --start_weight 4.0 --random_start --sinusoid_weight 0.4
-python sysid/fluid/eval_sysid.py       # held-out runs 1, 2, 5, 6, 8, 12; the twin is ~13 % slow straight, ~7 % fast in turns
+python sysid/fluid/eval_sysid.py       # E13a (sysid/fluid/results/E13a.yml) on the held-out runs 1, 2, 5, 6, 8, 12; the twin is ~13 % slow straight, ~7 % fast in turns
 ```
 
 The result used by the deployed policy is **E13a** (loss 0.040, 2 028 evaluations; the optimiser checkpoint
@@ -58,7 +58,7 @@ fin       0.170727  0.003855 18.310332 10.148229  5.951302
 These are `SYSTEMPARAMETERS["fluidCoef"]` in `geometry/sofi.py` and `fluid_tuning.coefficients`
 in `sysid/fluid/field2sim.yml`. Note that `opt_field2sim.py` writes its best coefficients back into `field2sim.yml`
 when it finishes; `git checkout sysid/fluid/field2sim.yml` restores E13a. `sysid/fluid/FLUID_COEFFICIENTS.md` is the log of every attempt (E1 to
-E13) with what changed between them. Paper Fig. 5 (`paper/fig5_fluidfit_paper.py`) replays the fitted and
+E13) with what changed between them. Paper Fig. 5 (`paper/fig5_fluidfit.py`) replays the fitted and
 held-out runs through this model.
 
 The direct-action model (`geometry/sofi_motorid.py`) uses a later refit, **refitB**, made on the

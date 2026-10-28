@@ -21,13 +21,6 @@ Usage:
 import argparse, copy, glob, os, sys, yaml
 import numpy as np, pandas as pd, mujoco
 import matplotlib.pyplot as plt
-import sys as _sys; _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "paper"))
-try:
-    from report_style import use_report_style, CB, savefig as _rsave, TEXTWIDTH_PT
-    use_report_style(collage=True)
-    _RS=True
-except Exception:
-    _RS=False
 from scipy.optimize import curve_fit
 from scipy.fft import rfft, rfftfreq
 
@@ -41,8 +34,10 @@ _SP_TEMPLATE  = _SP_CURRENT
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TMP_CFG   = os.path.join(_REPO_ROOT, "sysid", "fluid", "_eval_tmp.yml")
 _TMP_XML   = os.path.join(_REPO_ROOT, "geometry", "_eval_tmp.xml")
-_DATA_GLOB = os.path.join(os.environ.get("FISHDEPLOY_ROOT", os.path.join(_REPO_ROOT, "..", "fishdeploy")), "data",
-                           "01_field_openloop_20260401", "run_*", "processed", "03_field2sim_ready.csv")
+sys.path.insert(0, _REPO_ROOT)
+from paths import FIELD as _FIELD                     # fishdeploy/data/01_field_openloop_20260401
+_DATA_GLOB = os.path.join(_FIELD, "run_*", "processed", "03_field2sim_ready.csv")
+_DEFAULT_RESULT = os.path.join(_REPO_ROOT, "sysid", "fluid", "results", "E13a.yml")
 _START_WEIGHT = 4.0  # must match the value used during optimisation
 _PULLEY_R       = 0.0175  # m — for mm→rad conversion in interpolated specs
 _PULLEY_DISPLAY = 17.5    # mm — real pulley radius, used to convert rad → mm for display
@@ -256,52 +251,37 @@ def plot_trajectory_grid(results, title, out_path):
     ncols = min(3, n)
     nrows = (n + ncols - 1) // ncols
 
-    if _RS:
-        # Report variant: build near final width (no heavy LaTeX downscaling) with
-        # the small-panel ("dense") font tier so ticks/titles stay legible on the page.
-        use_report_style(dense=True)
-        fw = TEXTWIDTH_PT / 72.27 * 0.99
-        fh = fw * (nrows / ncols) * 0.92
-        data_lw, mk = 1.2, 3.2
-    else:
-        fw, fh = 5.5 * ncols, 4.5 * nrows
-        data_lw, mk = 1.8, 5.0
+    fw, fh = 5.5 * ncols, 4.5 * nrows
+    data_lw, mk = 1.8, 5.0
     fig, axs = plt.subplots(nrows, ncols, figsize=(fw, fh), squeeze=False)
 
     for idx, r in enumerate(results):
         ax = axs[idx // ncols][idx % ncols]
         g, tw = r['ghost_xy'], r['twin_xy']
-        ax.plot(g[:,0],  g[:,1],  color=(CB['blue'] if _RS else 'steelblue'), lw=data_lw, label='Real fish', zorder=3)
-        ax.plot(tw[:,0], tw[:,1], color=(CB['orange'] if _RS else 'tomato'), lw=data_lw, label='Twin (sim)', zorder=3, ls='--')
-        ax.plot(g[0,0],  g[0,1],  'o', color=(CB['blue'] if _RS else 'steelblue'), ms=mk, zorder=5)
-        ax.plot(tw[0,0], tw[0,1], 'o', color=(CB['orange'] if _RS else 'tomato'), ms=mk, zorder=5)
+        ax.plot(g[:,0],  g[:,1],  color='steelblue', lw=data_lw, label='Real fish', zorder=3)
+        ax.plot(tw[:,0], tw[:,1], color='tomato', lw=data_lw, label='Twin (sim)', zorder=3, ls='--')
+        ax.plot(g[0,0],  g[0,1],  'o', color='steelblue', ms=mk, zorder=5)
+        ax.plot(tw[0,0], tw[0,1], 'o', color='tomato', ms=mk, zorder=5)
         loss = r.get('loss', float('nan'))
         amp_str = ("  [%.1fmm actual]" % r['achieved_mm']) if 'achieved_mm' in r else ""
-        if _RS:
-            ax.set_title(_clean_run_title(r['label'], loss))
-        else:
-            ax.set_title("%s%s\nwpos=%.4f" % (r['label'].replace("_"," "), amp_str, loss), fontsize=15)
+        ax.set_title(_clean_run_title(r['label'], loss) + amp_str, fontsize=9)
         if 'times' in r:
             t8 = int(np.searchsorted(r['times'], 8.0))
             t8 = min(t8, len(r['ghost_xy']) - 1)
             if t8 > 0:
                 ax.plot(r['ghost_xy'][t8, 0], r['ghost_xy'][t8, 1],
-                        's', color=(CB['green'] if _RS else 'green'), ms=mk+2, zorder=6, label=r'$t=8$\,s' if _RS else 't=8s')
+                        's', color='green', ms=mk+2, zorder=6, label='t=8s')
                 ax.plot(r['twin_xy'][t8, 0], r['twin_xy'][t8, 1],
-                        's', color=(CB['green'] if _RS else 'green'), ms=mk+2, zorder=6)
-        ax.set_xlabel(r"$x$ [m]" if _RS else "X (m)"); ax.set_ylabel(r"$y$ [m]" if _RS else "Y (m)")
+                        's', color='green', ms=mk+2, zorder=6)
+        ax.set_xlabel("X (m)"); ax.set_ylabel("Y (m)")
         ax.axis('equal'); ax.grid(True, alpha=0.3)
-        if idx == 0: ax.legend(loc='best', fontsize=(None if _RS else 8))
+        if idx == 0: ax.legend(loc='best', fontsize=8)
 
     for idx in range(n, nrows * ncols):
         axs[idx // ncols][idx % ncols].set_visible(False)
 
-    if _RS:
-        fig.set_layout_engine("constrained")
-        _rsave(fig, out_path[:-4] if out_path.endswith('.png') else out_path)
-    else:
-        fig.tight_layout()
-        fig.savefig(out_path, dpi=150, bbox_inches='tight'); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches='tight'); plt.close(fig)
     print(f"  Saved: {out_path}")
 
 
@@ -393,10 +373,7 @@ def plot_freeswim_grid(results, title, out_path):
         axs[idx // ncols][idx % ncols].set_visible(False)
 
     fig.tight_layout()
-    if _RS:
-        _rsave(fig, out_path[:-4] if out_path.endswith('.png') else out_path)
-    else:
-        fig.savefig(out_path, dpi=150, bbox_inches='tight'); plt.close(fig)
+    fig.savefig(out_path, dpi=150, bbox_inches='tight'); plt.close(fig)
     print(f"  Saved: {out_path}")
 
 
@@ -406,7 +383,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("result_yaml", nargs='?', default=None,
-                        help="Path to opt_result_*.yml. Omit to use most recent.")
+                        help="Path to an opt_result_*.yml of opt_field2sim.py. Default: the most recent one in "
+                             "outputs/sysid/, else the committed E13a result (sysid/fluid/results/E13a.yml).")
     parser.add_argument("--config", default="sysid/fluid/field2sim.yml")
     parser.add_argument("--output_dir", default="outputs/sysid/eval")
     parser.add_argument("--skip_val_curve", action='store_true',
@@ -417,10 +395,8 @@ def main():
     if args.result_yaml:
         result_path = args.result_yaml
     else:
-        candidates = sorted(glob.glob("outputs/sysid/opt_result_*.yml"))
-        if not candidates:
-            print("No opt_result_*.yml found in outputs/sysid/. Pass a path explicitly."); return
-        result_path = candidates[-1]
+        candidates = sorted(glob.glob(os.path.join(_REPO_ROOT, "outputs", "sysid", "opt_result_*.yml")))
+        result_path = candidates[-1] if candidates else _DEFAULT_RESULT
     print(f"\nLoading: {result_path}")
 
     with open(result_path) as f:
@@ -431,7 +407,8 @@ def main():
     best_coef  = result['best_coef']
     n_coef     = result.get('n_coef', len(best_coef))
     all_evals  = result.get('all_evaluations', [])
-    train_dirs = result.get('run_dirs', [])
+    # run folders: as written by the optimiser ('run_dirs'), or by name under the fishdeploy field data ('runs')
+    train_dirs = result.get('run_dirs') or [os.path.join(_FIELD, r) for r in result.get('runs', [])]
 
     train_csvs = [os.path.realpath(os.path.join(d, "processed", "03_field2sim_ready.csv"))
                   for d in train_dirs]

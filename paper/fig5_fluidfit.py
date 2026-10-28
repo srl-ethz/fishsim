@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fig 5 (fluid-model fit) at the PAPER's column width.
+"""Fig. 5 (fluid-model fit) at the paper's column width.
 
 The paper's figure is the matched pair (--pair): one fitted and one held-out run at the same
 condition, written as fig5_fluidfit.pdf. Mike: "Figure 5 is too much, at most 3 trajectories.

@@ -52,11 +52,11 @@ distribution. Best RL tracking (2.49°/0.79) with field 4 Hz controlled (0.398 �
 no over-pass). v_max=6.77 (kv DR spans hardware 5.75). Dead time: total cmd→meas lag is REAL
 and consistent (xcorr: ~73 ms RL, ~60 ms field; co-logged → not a clock artifact); the
 delay-vs-pole split is ambiguous but RL velocity needs the delay → model ~28 ms, DR 20–40 ms.
-In auto_SOFI.py + SOFI.xml. Saved: `fitted_params_rlprimary.json` (adopted), plus
+In sofi.py + SOFI.xml. Saved: `fitted_params_rlprimary.json` (adopted), plus
 `_combined.json` and `_free_kv.json` on record.
 
 ## 3. Code changes (DONE)
-- `geometry/auto_SOFI.py`: motor_kp/kv/armature in SYSTEMPARAMETERS (+ header rewritten);
+- `geometry/sofi.py`: motor_kp/kv/armature in SYSTEMPARAMETERS (+ header rewritten);
   motor joint armature now `{args['motor_armature']}`. `SOFI.xml` regenerated.
 - `rl/environments/env_sofi_da.py`: LPF + gear EMA REMOVED; substep dead-time ring buffer
   added (`motor_deadtime_steps`); motor_history stores raw action; docstring updated.
@@ -84,14 +84,14 @@ now with the re-identified motor model + re-identified fluid coeffs. Fresh from-
   - Recenter motor DR on the identified values — see integration checklist.
 
 ### Integration checklist (before launch)
-1. Fill combined-fit params into `auto_SOFI.py`; regenerate `SOFI.xml`; re-run
+1. Fill combined-fit params into `sofi.py`; regenerate `SOFI.xml`; re-run
    `23_motor_id.py --no-fit`(parity) + `22_motor_baseline.py 1` (field Bode within tol).
 2. Recenter DR: edit the curriculum env's `motor_kp_range`/`motor_kv_range` (and the
    `physics_model.py` nominal defaults kp=5.0,kv=0.30 → identified) around the new values.
    Keep widths for sim2real robustness (the field↔RL tail spread). Decide armature/
    dead-time DR (default: keep both fixed for S01; revisit in S02).
 3. `motor_deadtime_steps` set in the sweep config and confirmed reaching the env.
-4. Ensure the latest re-ID fluid coeffs are in `auto_SOFI.py` before regenerating XML.
+4. Ensure the latest re-ID fluid coeffs are in `sofi.py` before regenerating XML.
 
 ### Commands (after committing + pushing)
 ```bash

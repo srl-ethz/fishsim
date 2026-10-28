@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fig: what the direct-action flutter looks like -- panel (b) of the July gait figure, alone.
+"""Fig. 10 (gait traces): what the direct-action flutter looks like, the three motor-angle traces.
 
 The July figure (`10_gaits_combined.pdf`) had three panels; (a) and (c) duplicate Table III
 and were dropped on the advisor's note. This keeps only the three motor-angle traces:
@@ -29,7 +29,7 @@ z = np.load(SRC)
 
 ROWS = [                      # key, label as in Table III, colour of the actual angle
     ("tg",      "TG",      ROLE["cpg"]),          # blue, as everywhere the TG appears
-    ("da",      "DA",      CB["purple"]),         # purple, as direct action in fig_velspectrum
+    ("da",      "DA",      CB["purple"]),         # purple, as direct action in fig9_velspectrum
     ("da_lpf1", "DA-FOF", CB["green"]),
 ]
 T_MAX = 3.0                   # s; the July figure showed 0-6 s, cropped to the first 3 s

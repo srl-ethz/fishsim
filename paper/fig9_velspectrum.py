@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Where each gait puts its tail-velocity power, against the band the fluid was identified on.
+"""Fig. 9 (tail-velocity power): where each gait puts its tail-velocity power, against the band the fluid was identified on.
 
 Four conditions, all from the ACTUAL tail motion (encoder on hardware, joint angle in
 simulation) rather than the commanded setpoint. The command is the wrong signal: it carries
@@ -17,7 +17,7 @@ fraction remains a lower bound.
 
 Inputs
     fishdeploy/data/01_field_openloop_20260401/   open-loop identification runs
-    upstream/sofi_control/rl_deploy/runs/                        deployment runs (encoder)
+    fishdeploy/data/02_deploy_20260520/<run>/raw/run.csv         deployment runs (encoder)
     data/sim_rollouts.npz                                        simulated CPG and direct action
 """
 import glob
@@ -161,8 +161,7 @@ def deployment_beat():
     The claim is stable to that choice, the second decimal is not.
 
     This supersedes an earlier "peaks at 1.75 Hz", which was the COMMANDED setpoint of a
-    single run (hope_didnt_work_2) from report_scripts/deploy_plots.py, plotted in the since
-    removed 20d_spectrum_firstever.pdf. It was true of that run and did not generalise.
+    single run (hope_didnt_work_2) in an early report plot. It was true of that run and did not generalise.
     """
     out = []
     for a, dt in deployment_angles():

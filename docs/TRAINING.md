@@ -59,5 +59,28 @@ fluid, identified motor). The resulting policy (`policies/sofi_da_rl_policy.zip`
 exploiting high-frequency tail flicks that the stateless fluid model rewards (paper Fig. 9 and Fig. 10).
 `sweep_da_fof.yml` is the same recipe with a first-order 4.5 Hz low-pass filter on the setpoint
 (`--lpf_cutoff_hz 4.5`), the "DA-FOF" policy whose gait is the third trace of Fig. 10
-(`policies/sofi_da_fof_rl_policy.zip`); `docs/sim2real_motor_fluid_lpf_findings.md` has the analysis. `docs/CURRICULUM_DESIGN.md` and
-`docs/RL_QUICKREF.md` are the working notes behind the curriculum.
+(`policies/sofi_da_fof_rl_policy.zip`); `docs/sim2real_motor_fluid_lpf_findings.md` has the analysis.
+
+## How the curriculum came to be
+
+The curriculum and the trainer were settled over 26 W&B sweeps between April and June 2026, on the CPG
+stack and then on the direct-action stack (sweeps 9 to 26: the 40-D observation with motor history, kp 5
+servo). The working notes of those sweeps are not in this repository;
+what carried over into the code is below.
+
+Fixed by evidence, not swept any more:
+
+| Choice | Why |
+|---|---|
+| mirrored replay buffer (`mirrored_replay_buffer.py`), always evaluate stochastically | the policy is bimodal left/right; the deterministic mean action is "no turn" and fails lateral targets |
+| clean sensors at stage 0, noise and delay unlocked by the first phase | a noisy stage 0 collapses the entropy at 50 to 55 % success and never recovers |
+| `rewardSuccess` 30 (ratio of the terminal to the running reward about 16) | larger terminal rewards (200, 1000) collapse SAC's entropy after every stage promotion |
+| learning rate scaled by `lr_scale` per stage and reset at phase boundaries | a reset at every stage forgets, no reset stalls at the domain-randomisation stages |
+| physics randomisation split into small ranges from stage 0 rather than switched on at one stage | switching it on at one stage fills the buffer with pre-randomisation experience and costs about 1 M steps to flush |
+| `batchSize` 256, 3 hidden layers, `train_freq` 4, `gamma` 0.994 to 0.997 | consistent across the sweeps; `gamma` below 0.994 makes a 600-step U-turn Q-negative |
+
+Failure modes that cost a sweep each: a jerk penalty above 2e-4 kills propulsion (the motor needs overshoot
+for thrust); an episode limit of 1 500 steps with the kp 5 servo leaves no margin at 150 degrees and caps
+success at 72 to 75 %; new observation columns unlocked without zero-initialising their weights perturb
+the critic; a reward term that is never passed to the environment trains silently with zero weight.
+

@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
-"""Shared SysID figure for the report (used by BOTH sec 4.1 and 4.2): the fish hull
-with (a) the five identified tail HINGES marked as spheres, and (b) the fluid
-ELLIPSOIDS coloured by segment (head/body blue, tail green, fin orange).
+"""Render of the simulated fish for Figs 1 and 2: the hull with (a) the five identified tail hinges
+marked as spheres and (b) the fluid ellipsoids coloured by segment (head/body blue, tail green,
+fin orange), on a white background.
 
-Adapted from fishCREATE/digital_twin/diagnostics/scripts/render_fluid_ellipsoids.py.
-Changes: WHITE background (opaque backdrop quad so translucent ellipsoids blend on
-white), and hinge markers at the tail-joint anchors.
+    python render_hull_hinges_fluid.py          # writes out/40_hull_hinges_fluid.png
 
-Run from the fishCREATE repo root in the `mujoco` conda env:
-    python <this>
-Writes: 05_Report/Final_Report/figures/sysid/40_hull_hinges_fluid.png
+The committed copy the figures read is static/40_hull_hinges_fluid.png; re-run and copy only
+when the model geometry changes.
 """
 import os, sys, argparse, numpy as np, mujoco, cv2
 
 from _paths import REPO as _REPO, OUT as _OUT
-FISHCREATE = str(_REPO)
-sys.path.insert(0, FISHCREATE)
+sys.path.insert(0, str(_REPO))
 import geometry.sofi_motorid as gen
 OUT = str(_OUT / "40_hull_hinges_fluid.png")   # the committed copy is paper/static/40_hull_hinges_fluid.png
 

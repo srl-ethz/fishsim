@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fig 6 (motor tracking overlay) at the PAPER's column width.
+"""Fig. 6 (motor tracking overlay) at the paper's column width.
 
 Derived from the report generator; only the output folder and the set_size reference
 width are changed, so the report asset (387 pt, printing at 4.4 pt) is untouched.

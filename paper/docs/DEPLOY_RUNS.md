@@ -4,8 +4,8 @@ Every closed-loop hardware run of the trajectory-generator policy from the deplo
 outcome, target geometry and tracking quality. This is the deployment counterpart to
 `RUNS.md`, which covers the twelve open-loop runs the fluid model was identified on.
 
-Per-run logs: `upstream/sofi_control/rl_deploy/runs/<timestamp>_<run>/raw/run.csv`.
-Vision caches: `upstream/sofi_control/rl_deploy/analysis_20260520/cache/`.
+Per-run logs: `fishdeploy/data/02_deploy_20260520/<timestamp>_<run>/raw/run.csv`.
+Vision caches: `fishdeploy/data/02_deploy_20260520/analysis/cache/`.
 Raw video is not in this repo; see `ARCHIVE.md`.
 
 Hardware closed-loop swimming runs of the 24-D trajectory-generator policy. Every run has a real-time trace

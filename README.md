@@ -60,13 +60,14 @@ make -C paper figures check                                       # 5. rebuild t
 ## Reproducibility status
 
 Rebuilt from a clean clone of this branch and of fishdeploy on 2026-10-28 and compared with the PDFs as
-submitted (`make -C paper check`): seven of the ten figures match in text and byte size. Figs 3 and 7 match in
-text and render pixel-identical; their one and 25 bytes of difference come from the version of the library
-that re-encodes the embedded photographs. Fig. 5 (the fluid-fit replay) matches in text, differs by 28 bytes,
-and renders pixel-identical except for sub-pixel shifts along the simulated trajectory, i.e. floating-point
-differences of a MuJoCo replay made on another machine.
-`geometry/SOFI.xml` and `SOFI_motorid.xml` regenerate byte-identically from their generators, and the tail
-stiffness fit reproduces k_eff = 0.98 N m/rad.
+submitted (`make -C paper check`): every figure matches in text; six of the ten also match in byte size.
+Figs 2 and 3 differ by two bytes of font metadata because the reference PDFs were printed by Chrome 152 and
+today's Chrome 156 writes its font descriptors differently (their SVG sources are byte-identical). Figs 5 and 7
+differ by 28 and 25 bytes and render pixel-identical except, in Fig. 5, for sub-pixel shifts along the
+simulated trajectory, i.e. floating-point differences of a MuJoCo replay made on another machine.
+`geometry/SOFI.xml` and `SOFI_motorid.xml` regenerate byte-identically from their generators, the tail
+stiffness fit reproduces k_eff = 0.98 N m/rad, and `sysid/fluid/eval_sysid.py` evaluates the committed E13a
+result on the twelve field runs.
 
 ## Credits
 

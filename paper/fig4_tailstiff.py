@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tail stiffness: the transmission geometry, the bend it produces, and the measurement.
+"""Fig. 4 (tail stiffness): the transmission geometry, the bend it produces, and the measurement.
 
 Three panels, one column.
 
@@ -33,7 +33,7 @@ Three panels, one column.
       puts the structural stiffness at the intercept and the effective inertia in the slope.
 
 Inputs
-    upstream/fishCREATE/geometry/SOFI.xml      identified twin, for the bend
+    ../geometry/SOFI.xml                          identified twin, for the bend
     ../sysid/tail_stiffness/ on the r17.5 air-benchmark sweep in fishdeploy/data/03_sysid/tail_benchmark/air
 """
 import sys

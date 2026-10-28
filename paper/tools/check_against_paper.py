@@ -15,13 +15,13 @@ PAPER = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PAPER
 PAIRS = ["fig1_overview",            # fig1_overview.py --variant compact (SVG -> PDF via Chrome/Edge)
          "fig2_training_pipeline",   # fig2_training_pipeline.py
          "fig3_experimental_setup",  # fig3_experimental_setup.py (SVG -> PDF via Chrome/Edge)
-         "fig4_tailstiff",           # fig_tailstiff_paper.py
-         "fig5_fluidfit",            # fig5_fluidfit_paper.py --pair
-         "fig6_motor_overlay",       # fig6_motor_overlay_paper.py
-         "fig7_deploy_collage",      # fig_deploy_collage_paper.py (divider variant, the default)
-         "fig8_reach_collage",       # fig_reach_collage_paper.py
-         "fig9_velspectrum",         # fig_velspectrum.py (with the deployed runs; --no-hardware drops them)
-         "fig10_gait_traces"]        # fig_gaits_traces_paper.py
+         "fig4_tailstiff",           # fig4_tailstiff.py
+         "fig5_fluidfit",            # fig5_fluidfit.py --pair
+         "fig6_motor_overlay",       # fig6_motor_overlay.py
+         "fig7_deploy_collage",      # fig7_deploy_collage.py (divider variant, the default)
+         "fig8_reach_collage",       # fig8_reach_collage.py
+         "fig9_velspectrum",         # fig9_velspectrum.py (with the deployed runs; --no-hardware drops them)
+         "fig10_gait_traces"]        # fig10_gait_traces.py
 
 # Used by the paper but hand-made: nothing to regenerate. (Empty since Fig. 3 got a generator.)
 STATIC = []

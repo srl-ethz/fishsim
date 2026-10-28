@@ -164,9 +164,6 @@ the head-plate face and reproduces the +84.3 mm E9–E10 value.)
 
 ## How to reproduce this finding
 
-```bash
-# head mesh extent vs COM markers (shows COM in front of the nose):
-python digital_twin/diagnostics/scripts/visualize_anatomy_3view.py
-#   -> anatomy_3view_SOFI_COM.png  (orange star = true assembled COM, magenta X = head-body COM_0)
-# the markers sit at x≈0 (nose) instead of mid-body — that is the bug, faithfully rendered.
-```
+Render the head mesh with the model's centre-of-mass markers (for example with MuJoCo's viewer on
+`geometry/SOFI.xml`): the head-body COM marker sits at x ≈ 0, the nose, instead of mid-body. The
+numbers above come from `geometry/sofi.py` (`SYSTEMPARAMETERS`) and the CAD mass properties.

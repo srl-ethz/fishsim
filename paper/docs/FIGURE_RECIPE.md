@@ -1,9 +1,9 @@
 # Figure standard
 
-Every plot generator in `figures/` imports `paper_style.py`. Nothing sets its own fonts, line
+Every plot generator in `paper/` imports `paper_style.py`. Nothing sets its own fonts, line
 widths, colours or figure size. If a figure needs something the module does not provide, the
-module gets extended rather than the figure overriding it. The two SVG diagrams take the same
-family and sizes from `_svg_pipeline.py` / `_svg_curriculum.py` (see the last section).
+module gets extended rather than the figure overriding it. The three SVG diagrams take the same
+family and sizes from `_svg.py` (see the last section).
 
 ## Per figure
 
@@ -71,14 +71,14 @@ without touching the size. For a legend outside the axes use
 
 ## The diagram figures (Fig. 1 overview, Fig. 2 training pipeline, Fig. 3 hardware)
 
-`figures/fig1_overview.py`, `figures/fig2_training_pipeline.py` and
-`figures/fig3_experimental_setup.py` are not matplotlib plots and do not go through `paper_style`. They write SVG directly (boxes, arrows, icons, embedded PNG
+`fig1_overview.py`, `fig2_training_pipeline.py` and
+`fig3_experimental_setup.py` are not matplotlib plots and do not go through `paper_style`. They write SVG directly (boxes, arrows, icons, embedded PNG
 renders and photos), so every label is real, Inkscape-editable text, and are exported to PDF
 with Chrome/Edge (or Inkscape if present).
 
 They follow the same family (Times New Roman via SVG `font-family`) and the same sizes. Each
 is laid out by hand in millimetres at the column or text width and included at that width, so
-a font size in the script is the printed size: `FS_MAIN` / `cf.FS` = 9 pt for titles, box
+a font size in the script is the printed size: `FS_MAIN` / `FS` = 9 pt for titles, box
 labels and signal labels, `FS_SMALL` / `FS2` = 8 pt for equations, notes and icon captions,
 `FS_STEP` = 10 pt for Fig. 1's numbered step titles. The layouts were redrawn for these sizes
 in September 2026 (wider boxes, taller pages, a narrower simulator block in Fig. 2).
@@ -86,7 +86,7 @@ in September 2026 (wider boxes, taller pages, a narrower simulator block in Fig.
 A warning from that rework: do not try to get larger type by drawing at a smaller size on a
 page scaled up by k and letting LaTeX scale it back. The include scales the type by 1/k as
 well, so nothing is gained; the diagrams printed at 7 pt for a day that way. `PRINT_SCALE`
-in `_svg_pipeline.py` is kept at 1 so the page always equals the layout.
+in `_svg.py` is kept at 1 so the page always equals the layout.
 
 | rule | plots | diagrams |
 |---|---|---|
@@ -95,16 +95,16 @@ in `_svg_pipeline.py` is kept at 1 so the page always equals the layout.
 | export | `fig.savefig` | Inkscape if on the PATH, else a headless Chrome/Edge print sized to the SVG page; without either you get the SVG only |
 | axes, grid | four spines, grid | schematic mini plots with L-shaped axes and no ticks |
 
-Both take their inputs from `figures/static/` (renders, stills, strobe montage) and, for the
-full-resolution figure-eight photo, from `upstream/sofi_control/rl_deploy/analysis_20260520/report_strobes/`.
+They take their inputs from `static/` (renders, stills, the CAD cutaway) and, for the
+figure-eight strobe of Fig. 1, from `fishdeploy/data/02_deploy_20260520/analysis/report_strobes/`.
 `make figures` builds `out/fig1_overview.pdf`, `out/fig2_training_pipeline.pdf` and
 `out/fig3_experimental_setup.pdf` with their `.png` twins; the editable `.svg` sources land in
-`.gen/svg/`. Fig. 3 is the CAD cutaway with its labels and arrows drawn by the script (the tips
+`out/svg/`. Fig. 3 is the CAD cutaway with its labels and arrows drawn by the script (the tips
 taken from the earlier Inkscape drawing), so the type follows the standard; its panel B is a
-photograph of the built fish, `figures/static/real_fish_cut.png`, cut out of `real_fish.jpeg`
-and relit by `tools/cut_real_fish.py` (needs rembg, see its docstring; the cutout is committed). The SVG helper modules `_svg_pipeline.py`
-and `_svg_curriculum.py` and the Tabler icon set in `figures/icons/` (MIT, licence included)
-belong to them.
+photograph of the built fish, `static/real_fish_cut.png`, cut out of `real_fish.jpeg`
+and relit by `tools/cut_real_fish.py` (needs rembg, see its docstring; the cutout is committed). The SVG
+helper `_svg.py` (primitives, equation markup, icons, PDF export) and the Tabler icons in `icons/` (MIT,
+licence included) belong to them.
 
 ## History
 
