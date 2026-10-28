@@ -1,0 +1,26 @@
+    \begin{tikzpicture}[
+      font=\small,
+      box/.style={draw, rounded corners, align=center, minimum height=6mm, inner xsep=3pt, inner ysep=2pt},
+      shore/.style={box, fill=ETH-l-blue!40}, onb/.style={box, fill=black!5},
+      >={Stealth[length=1.8mm]}, ln/.style={->, semithick},
+      elbl/.style={font=\scriptsize, inner sep=1.5pt},
+    ]
+    \node[shore] (cam) {Overhead\\camera};
+    \node[shore, right=5mm of cam] (laptop) {Laptop\\AprilTag vision};
+    % on-board row, Pi directly under the laptop
+    \node[onb, below=13mm of laptop] (pi) {Raspberry Pi\,5\\SAC @ 50\,Hz $\rightarrow$ CPG};
+    \node[onb, right=6mm of pi] (servo) {Dynamixel\\servo};
+    \node[right=4mm of servo] (tail) {tail};
+    \node[onb, below=8mm of pi.south, anchor=north, xshift=-13mm] (imu) {IMU};
+    \node[onb, right=6mm of imu] (enc) {encoder};
+    \draw[ln] (cam) -- (laptop);
+    \draw[ln] (laptop) -- (pi) node[elbl, midway, right=1mm, align=left] {rel.\ pose\\Wi-Fi\,/\,UDP};
+    \draw[ln] (pi) -- (servo) node[elbl, midway, above] {goal};
+    \draw[ln] (servo) -- (tail) node[elbl, midway, above] {thrust};
+    \draw[ln] (imu) -- (imu|-pi.south);
+    \draw[ln] (enc) -- (enc|-pi.south);
+    \begin{scope}[on background layer]
+    \node[draw, dashed, rounded corners, fit=(pi)(servo)(imu)(enc), inner sep=3mm,
+          label={[font=\scriptsize\itshape, anchor=south east, inner sep=2pt]south east:on-board (fish)}] {};
+    \end{scope}
+    \end{tikzpicture}

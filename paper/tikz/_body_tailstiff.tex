@@ -1,0 +1,83 @@
+    \begin{tikzpicture}[
+        % scale shrinks the geometry only: TikZ node text is NOT scaled, so the
+        % 7 pt floor survives.  Needed to fit the true-scale pulley in one column.
+        scale=0.96,
+        font=\scriptsize, line width=0.5pt,
+        >={Stealth[length=1.5mm]},
+        dim/.style={<->, black!70, line width=0.35pt},
+        ext/.style={black!45, line width=0.3pt},
+        lbl/.style={font=\scriptsize, inner sep=1pt},
+        seg/.style={fill=ETH-l-blue!55, draw=black!50, line width=0.35pt},
+        plate/.style={fill=black!30, draw=black!55, line width=0.35pt},
+        proj/.style={black!40, line width=0.3pt, dash pattern=on 1.2pt off 1.2pt},
+    ]
+    %================ (a) TOP VIEW -- the bending plane ================
+    % 1 drawing unit = 20 mm.  One continuous plate; hinges at their true spacing
+    % (23.5 / 25 mm).  L_i is the plate length attributed to each hinge (19 / 22 mm).
+    % The pulley is drawn at its true radius: r ~ d_1 is the whole point of eq:keffmap.
+    \begin{scope}
+      \node[lbl, anchor=south west] at (-2.45,1.30) {\textbf{(a)} top view: the bending plane};
+      \fill[black!12, draw=black!45] (-2.45,-0.95) rectangle (-0.55,0.95);
+      \node[lbl, anchor=north west, inner sep=1pt] at (-2.45,-0.98) {motor};
+      % pulley, to scale
+      \draw[fill=black!5, draw=black!60] (-1.50,0) circle (0.875);
+      \fill[black!60] (-1.50,0) circle (0.035);
+      \draw[dim, ->] (-1.50,0) -- (-1.50,0.875);
+      \node[lbl, anchor=north, inner sep=2pt] at (-1.50,-0.14) {$r\!=\!17.5$};
+      % ONE continuous compliant plate -- the real tail has no rigid links
+      \draw[fill=ETH-l-blue!55, draw=black!50, line width=0.35pt] (-0.55,-0.045) rectangle (5.60,0.045);
+      \foreach \x/\lab in {0/{$k_1$}, 1.175/{$k_2$}, 2.425/{$k_3$}, 3.675/{$k_4$}, 4.925/{$k_5$}} {
+        \fill[white] (\x,0) circle (0.06); \draw[black!75] (\x,0) circle (0.06);
+        \node[lbl, anchor=south, inner sep=1.5pt] at (\x,0.10) {\lab};
+      }
+      % L_i = the length of plate attributed to each hinge (a discretisation choice)
+      \foreach \xa/\xb in {-0.475/0.475, 1.875/2.975} {
+        \draw[ext] (\xa,0.06) -- (\xa,0.60);  \draw[ext] (\xb,0.06) -- (\xb,0.60);
+        \draw[dim] (\xa,0.52) -- (\xb,0.52);
+      }
+      \node[lbl, anchor=south, inner sep=1pt] at (0,0.54) {$L_1\!=\!19$};
+      \node[lbl, anchor=south, inner sep=1pt] at (2.425,0.54) {$L_3\!=\!22$};
+      % tendon at -d_i (one of an antagonistic pair), leaving the pulley on the tangent
+      \draw[red!70!black, line width=0.7pt]
+        ([shift=(272:0.875)]-1.50,0) arc[start angle=272, end angle=200, radius=0.875];
+      \draw[red!70!black, line width=0.7pt]
+        (-1.50,-0.875) -- (0,-0.975) -- (1.175,-0.725) -- (2.425,-0.538)
+        -- (3.675,-0.350) -- (4.925,-0.225);
+      \foreach \x/\y in {1.175/0.725, 2.425/0.538, 3.675/0.350} {\draw[ext] (\x,-0.08) -- (\x,-\y);}
+      % d_i is the moment arm about hinge i, so it is measured to the hinge itself
+      \draw[dim] (0,-0.975) -- (0,-0.062);
+      \node[lbl, anchor=north west, inner sep=2pt] at (0.10,-1.02) {$d_1\!=\!19.5$};
+      \node[lbl, anchor=west, inner sep=1.5pt, black!55] at (2.49,-0.32) {$d_3$};
+      % d_5 is too small for arrowheads between the extension lines, so they point inwards
+      \draw[ext] (5.60,0) -- (5.98,0);  \draw[ext] (4.925,-0.225) -- (5.98,-0.225);
+      \draw[->, black!70, line width=0.35pt] (5.80,0.40) -- (5.80,-0.005);
+      \draw[->, black!70, line width=0.35pt] (5.80,-0.62) -- (5.80,-0.220);
+      \node[lbl, anchor=north east, inner sep=2pt] at (5.98,-0.60) {$d_5\!=\!4.5$};
+      \node[lbl, anchor=north west, red!70!black] at (1.60,-1.02) {tendon (one of an antagonistic pair)};
+      \coordinate (rootA) at (-0.55,-1.00);
+    \end{scope}
+    %================ (b) SIDE VIEW -- the plate heights ================
+    \begin{scope}[yshift=-3.05cm]
+      \node[lbl, anchor=south west] at (-2.45,1.02) {\textbf{(b)} side view: plate heights (vertical scale $\times\tfrac14$)};
+      \draw[black!45] (-0.55,0) -- (5.60,0);
+      \draw[plate] (-0.55,-0.665) -- (5.60,-0.320) -- (5.60,0.320) -- (-0.55,0.665) -- cycle;
+      \foreach \x/\h in {0/1.289, 1.175/1.194, 2.425/1.060, 3.675/0.882, 4.925/0.661} {
+        \draw[black!60, line width=0.3pt] (\x,-\h/2) -- (\x,\h/2);
+        \fill[white] (\x,0) circle (0.05); \draw[black!70, line width=0.3pt] (\x,0) circle (0.05);
+      }
+      \draw[ext] (-0.52,0.645) -- (-0.90,0.645);  \draw[ext] (-0.52,-0.645) -- (-0.90,-0.645);
+      \draw[dim] (-0.82,0.645) -- (-0.82,-0.645);
+      \node[lbl, anchor=south east, inner sep=2pt] at (-0.70,0.68) {$h_1\!=\!111.6$};
+      \draw[ext] (5.52,0.331) -- (5.95,0.331);  \draw[ext] (5.52,-0.331) -- (5.95,-0.331);
+      \draw[dim] (5.87,0.331) -- (5.87,-0.331);
+      \node[lbl, anchor=south, inner sep=2pt] at (5.87,0.36) {$h_5\!=\!57.2$};
+      \node[lbl, anchor=north] at (2.5,-0.76) {thickness $t\!=\!1.0$ into the page \; $\Rightarrow$ \; $k_i\propto h_i/L_i$};
+      \coordinate (hdrHi) at (-0.55,1.32);
+      \coordinate (hdrLo) at (-0.55,0.98);
+      \coordinate (rootB) at (-0.55,0.70);
+    \end{scope}
+    % projection line: the two views are registered on the tail root, which is why (b)
+    % starts where it does.  Broken around (b)'s heading.
+    \draw[proj] (rootA) -- (hdrHi);
+    \draw[proj] (hdrLo) -- (rootB);
+    \end{tikzpicture}\\[3pt]

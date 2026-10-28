@@ -1,0 +1,19 @@
+Step 1 Stiffness & Damping Results  [R4]
+slack_mm=2.5  cycle_avg=True  freqs=[1.0, 2.0, 3.0, 4.0]
+======================================================================
+k_eff         = 0.979526  Nm/rad  (n=42 conditions)
+I_eff         = 0.00265712  kg·m²
+E_PLA_calibr  = 3.05257  GPa
+c_viscous     = 0.010954  Nm·s/rad
+tau_Coulomb   = 0.055231  Nm
+loss_ratio_ck = 0.011183  s
+
+Per-joint values:
+  joint0: k=2.9883 Nm/rad   c=0.03342 Nm·s/rad
+  joint1: k=2.3912 Nm/rad   c=0.02674 Nm·s/rad
+  joint2: k=2.1229 Nm/rad   c=0.02374 Nm·s/rad
+  joint3: k=1.7668 Nm/rad   c=0.01976 Nm·s/rad
+  joint4: k=1.3228 Nm/rad   c=0.01479 Nm·s/rad
+
+YAML: hingeStiffness: [2.988, 2.391, 2.123, 1.767, 1.323]
+YAML: hingeDamping:   [0.0334, 0.0267, 0.0237, 0.0198, 0.0148]

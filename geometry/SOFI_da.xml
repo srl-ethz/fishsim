@@ -1,0 +1,211 @@
+
+<mujoco model="SOFI">
+    <option gravity="0 0 0" density="1000" viscosity="0.0013" integrator="implicitfast" timestep="0.001" iterations="100" solver="Newton" tolerance="1e-15" ls_tolerance="1e-9" noslip_tolerance="1e-9" o_solimp="0 0.01 0.01 0.1 2">
+        <flag contact="disable"/>
+    </option>
+
+    <visual>
+        <global offheight="2160" offwidth="3840"/>
+        <rgba haze=".3 .3 .3 1"/>
+    </visual>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.9 0.9 0.9" rgb2="0 0 0" width="512" height="512"/>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".6 .6 .6" rgb2=".8 .8 .8" width="512" height="512" mark="cross" markrgb=".9 .9 .9"/>
+        <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
+        <mesh name="head"     file="meshes/head.obj"/>
+        <mesh name="finTail"  file="meshes/croppedTailFin.obj"/>
+        <mesh name="body"     file="meshes/body.obj"/>
+        <mesh name="headPlate" file="meshes/headPlate.obj"/>
+    </asset>
+
+    <default>
+        <joint type="hinge" pos="0 0 0" axis="0 0 1" range="-80 80"/>
+        <tendon width="0.001" rgba=".9 .6 .5 1" stiffness="20000" damping="10"/>
+        <!-- Segmented fluid zones - coefficients tuned per zone during SysID [F2S] -->
+        <default class="head_fluid">
+            <geom fluidcoef="0.0030076886991375453 0.007421699329398956 3.9128899146717604 0.6465861250145061 1.9956571077573644" condim="1"/>
+        </default>
+        <default class="tail_fluid">
+            <geom fluidcoef="0.06355006839780405 2.350250276599493 12.355839847101345 0.4694493374017906 5.14493552073114" condim="1"/>
+        </default>
+        <default class="fin_fluid">
+            <geom fluidcoef="0.14620017203422025 1.58148248493131 2.001650696495574 14.306736876832357 5.411147556211791" condim="1"/>
+        </default>
+    </default>
+
+    <worldbody>
+        <camera name="overhead" pos="-1.5 0 5" xyaxes="1 0 0 0 1 0"/>
+        <geom name="floor" pos="0 0 -0.2" size="0 0 1" type="plane" material="matplane"/>
+        <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
+    
+        <body pos="0 0 0" name="fish_0" childclass="tail_fluid">
+            <camera name="tracking_0"      mode="track" pos="4 -4 4"      xyaxes="1 1 0 -0.5 0.5 1"/>
+            <camera name="closeup_0"       mode="track" pos="2 -2 2"      xyaxes="1 1 0 -0.5 0.5 1"/>
+            <camera name="overhead_track_0" mode="track" pos="0.17 0 0.5" xyaxes="1 0 0 0 1 0"/>
+
+            <joint name="headX_0"     pos="-0.007971 0.001328 0.000172" type="slide" axis="1 0 0" stiffness="0" damping="0"/>
+            <joint name="headY_0"     pos="-0.007971 0.001328 0.000172" type="slide" axis="0 1 0" stiffness="0" damping="0"/>
+            <joint name="headZ_0"     pos="-0.007971 0.001328 0.000172" type="slide" axis="0 0 1" stiffness="500" damping="10"/>
+            <joint name="headRollX_0" pos="-0.007971 0.001328 0.000172" type="hinge" axis="1 0 0" range="-180 180" stiffness="10" damping="1" armature="0.001"/>
+            <joint name="headRollY_0" pos="-0.007971 0.001328 0.000172" type="hinge" axis="0 1 0" range="-180 180" stiffness="10" damping="1" armature="0.001"/>
+            <joint name="headRollZ_0" pos="-0.007971 0.001328 0.000172" type="hinge" axis="0 0 1" limited="false" stiffness="0" damping="0" armature="0.001"/>
+
+            <site name="COM_0" pos="-0.007971 0.001328 0.000172" size="0.02" rgba="0 0 0 0"/>
+
+            <!-- EXPLICIT INERTIAL from SolidWorks 2026-04-29: Head(580g)+Body(250g)=830g combined -->
+            <!-- Axes: MuJoCo X=-SW_X, Y=-SW_Z, Z=-SW_Y. COM at x=-7.97mm (inside head section). -->
+            <!-- Motor mass is baked into the SW Body(250g) → motor child body has near-zero mass. -->
+            <!-- Geom masses below are set to 0 to prevent double-counting with this element.       -->
+            <inertial mass="0.83" pos="-0.007971 0.001328 0.000172" fullinertia="0.001547 0.002761 0.001722 2.2e-05 -1.7e-05 -4e-06"/>
+
+            <!-- BODY MESHES: fluid disabled, use consolidated hull proxy below -->
+            <!-- mass=0: inertia is fully specified by the <inertial> element above -->
+            <geom name="head_0"       type="mesh" mesh="head"      quat="0 0 -0.7071 0.7071" rgba=".9 .9 .9 1.0" mass="0" fluidshape="none"/>
+            <geom name="head-plate_0" type="mesh" mesh="headPlate" quat="0 0 -0.7071 0.7071" rgba=".5 .7 .9 1.0"   mass="0" fluidshape="none"/>
+            <geom name="body_0"       type="mesh" mesh="body"      quat="0.5 0.5 -0.5 0.5"   rgba=".5 .7 .9 1.0"   mass="0" fluidshape="none"/>
+
+            <!-- HULL FLUID PROXY — mass=0, ONLY for fluid force computation, not inertia -->
+            <geom name="hull_fluid_0" type="ellipsoid" pos="0.10 0 0.0082" size="0.10 0.039 0.068" rgba="1 0 0 0.1" mass="0" class="head_fluid" fluidshape="ellipsoid"/>
+
+            <!-- MOTOR visual geometry — all mass=0: inertia already in root <inertial> element -->
+            <geom name="motorConnector_0" type="cylinder" pos="0.132 0 -0.055"  size="0.005 0.0125" rgba=".1 .1 .1 1.0" mass="0" fluidshape="none"/>
+            <geom name="motorWire_0"      type="cylinder" pos="0.132 0 -0.0725" size="0.002 0.006"  rgba=".1 .1 .1 1.0" mass="0" fluidshape="none"/>
+            <geom name="motorBlock_0"     type="box"      pos="0.12 0 -0.0273"  size="0.02325 0.01425 0.017" rgba=".1 .1 .1 1.0" mass="0" fluidshape="none"/>
+
+            <!--
+            DETAILED INTERNAL MASS MODEL (commented out — use mesh masses above for now):
+            If mesh-based approximation is insufficient, uncomment these and set
+            head/head-plate/body masses back to PLA-shell-only values (~90/50/100g).
+
+            <geom name="head_content_0" type="box" pos="0.085 0 0.000" size="0.035 0.040 0.035"
+                  mass="0.300" rgba="0.2 0.5 0.8 0.2" fluidshape="none" contype="0" conaffinity="0"/>
+            <geom name="oil_0" type="ellipsoid" pos="0.080 0 -0.019" size="0.055 0.025 0.040"
+                  mass="0.200" rgba="0.9 0.8 0.1 0.15" fluidshape="none" contype="0" conaffinity="0"/>
+            <geom name="lead_ballast_0" type="sphere" pos="0.155 0 -0.045" size="0.015"
+                  mass="0.100" rgba="0.3 0.3 0.3 0.5" fluidshape="none" contype="0" conaffinity="0"/>
+            -->
+            <body pos="0.12 0 0" name="motor_0">
+                <joint name="motor_0" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" stiffness="0" damping="0.48" armature="0.0113"/>
+                <geom name="motorShaft_0"  type="cylinder" pos="0 0 0"                      size="0.005 0.0175"  rgba=".1 .1 .1 1.0"     mass="0.001" fluidshape="none"/>
+                <geom name="motorPulley_0" type="cylinder" pos="0 0 0.0175" size="0.0175 0.0025" rgba=".9 .2 .2 1.0" mass="0"     fluidshape="none"/>
+                <site name="pulleyRight_0" pos="0.007067778634853577 0.01600926310511222 0.022500000000000003" size="0.005" rgba="0 0 0 0"/>
+                <site name="pulleyLeft_0"  pos="0.007067778634853577 -0.01600926310511222 0.022500000000000003" size="0.005" rgba="0 0 0 0"/>
+            </body>
+
+            <site name="bodyLeft_0"  pos="0.12 -0.0285 0.022500000000000003" size="0.005" rgba="0 0 0 0"/>
+            <site name="bodyRight_0" pos="0.12  0.0285 0.022500000000000003" size="0.005" rgba="0 0 0 0"/>
+
+            <!-- TAIL - inherits childclass="tail_fluid" from fish body -->
+            <geom name="body-joint0_0" type="box" pos="0.20275 0 0.01016" size="0.00475 0.0005 0.0558" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+            <body pos="0.20750000000000002 0 0.01016">
+                <geom name="joint0_0" type="cylinder" pos="0 0 0" size="0.002 0.0558" rgba=".9 .2 .2 1.0" mass="0"/>
+                <joint name="joint0_0" armature="0.001" stiffness="2.988" damping="0.0334"/>
+                <geom name="joint0-tail0_0" type="box" pos="0.00475 0 0" size="0.00475 0.0005 0.0558" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                <geom name="tail0_0" type="box" pos="0.011 0 0" size="0.0015 0.001 0.0558" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                <site name="marker4_0" pos="0.011 0 0.0558" size="0.005" rgba=".9 .4 .1 0.15"/>
+                <geom name="tail0left_0"  type="box" pos="0.011 -0.01225 0" size="0.0015 0.01225 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                <geom name="tail0right_0" type="box" pos="0.011  0.01225 0" size="0.0015 0.01225 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                <site name="tail0left_0"  pos="0.011 -0.0195 0" size="0.004" rgba="0 0 0 0"/>
+                <site name="tail0right_0" pos="0.011  0.0195 0" size="0.004" rgba="0 0 0 0"/>
+
+                <geom name="tail0-joint1_0" type="box" pos="0.018000000000000002 0 0" size="0.0055 0.0005 0.0517" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                <body pos="0.0235 0 0">
+                    <geom name="joint1_0" type="cylinder" pos="0 0 0" size="0.002 0.0517" rgba=".6 .1 .1 1.0" mass="0"/>
+                    <joint name="joint1_0" armature="0.001" stiffness="2.391" damping="0.0267"/>
+                    <geom name="joint1-tail1_0" type="box" pos="0.0055 0 0" size="0.0055 0.0005 0.0517" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                    <geom name="tail1_0" type="box" pos="0.012499999999999999 0 0" size="0.0015 0.0015 0.0517" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                    <site name="marker5_0" pos="0.012499999999999999 0 0.0517" size="0.005" rgba=".9 .4 .1 0.15"/>
+                    <geom name="tail1left_0"  type="box" pos="0.012499999999999999 -0.00975 0" size="0.0015 0.00975 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                    <geom name="tail1right_0" type="box" pos="0.012499999999999999  0.00975 0" size="0.0015 0.00975 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                    <site name="tail1left_0"  pos="0.012499999999999999 -0.0145 0" size="0.004" rgba="0 0 0 0"/>
+                    <site name="tail1right_0" pos="0.012499999999999999  0.0145 0" size="0.004" rgba="0 0 0 0"/>
+
+                    <geom name="tail1-joint2_0" type="box" pos="0.019499999999999997 0 0" size="0.0055 0.0005 0.0459" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                    <body pos="0.024999999999999998 0 0">
+                        <geom name="joint2_0" type="cylinder" pos="0 0 0" size="0.002 0.0459" rgba=".6 .1 .1 1.0" mass="0"/>
+                        <joint name="joint2_0" armature="0.001" stiffness="2.123" damping="0.0237"/>
+                        <geom name="joint2-tail2_0" type="box" pos="0.0055 0 0" size="0.0055 0.0005 0.0459" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                        <geom name="tail2_0" type="box" pos="0.012499999999999999 0 0" size="0.0015 0.0015 0.0459" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                        <site name="marker6_0" pos="0.012499999999999999 0 0.0459" size="0.005" rgba=".9 .4 .1 0.15"/>
+                        <geom name="tail2left_0"  type="box" pos="0.012499999999999999 -0.007875 0" size="0.0015 0.007875 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                        <geom name="tail2right_0" type="box" pos="0.012499999999999999  0.007875 0" size="0.0015 0.007875 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                        <site name="tail2left_0"  pos="0.012499999999999999 -0.01075 0" size="0.004" rgba="0 0 0 0"/>
+                        <site name="tail2right_0" pos="0.012499999999999999  0.01075 0" size="0.004" rgba="0 0 0 0"/>
+
+                        <geom name="tail2-joint3_0" type="box" pos="0.019499999999999997 0 0" size="0.0055 0.0005 0.0382" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                        <body pos="0.024999999999999998 0 0">
+                            <geom name="joint3_0" type="cylinder" pos="0 0 0" size="0.002 0.0382" rgba=".9 .2 .2 1.0" mass="0"/>
+                            <joint name="joint3_0" armature="0.001" stiffness="1.767" damping="0.0198"/>
+                            <geom name="joint3-tail3_0" type="box" pos="0.0055 0 0" size="0.0055 0.0005 0.0382" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                            <geom name="tail3_0" type="box" pos="0.012499999999999999 0 0" size="0.0015 0.0015 0.0382" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                            <site name="marker7_0" pos="0.012499999999999999 0 0.0382" size="0.005" rgba=".9 .4 .1 0.15"/>
+                            <geom name="tail3left_0"  type="box" pos="0.012499999999999999 -0.006 0" size="0.0015 0.006 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                            <geom name="tail3right_0" type="box" pos="0.012499999999999999  0.006 0" size="0.0015 0.006 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                            <site name="tail3left_0"  pos="0.012499999999999999 -0.007 0" size="0.004" rgba="0 0 0 0"/>
+                            <site name="tail3right_0" pos="0.012499999999999999  0.007 0" size="0.004" rgba="0 0 0 0"/>
+
+                            <geom name="tail3-joint4_0" type="box" pos="0.019499999999999997 0 0" size="0.0055 0.0005 0.0286" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                            <body pos="0.024999999999999998 0 0">
+                                <geom name="joint4_0" type="cylinder" pos="0 0 0" size="0.002 0.0286" rgba=".9 .2 .2 1.0" mass="0"/>
+                                <joint name="joint4_0" armature="0.001" stiffness="1.323" damping="0.0148"/>
+                                <geom name="joint4-tail4_0" type="box" pos="0.0055 0 0" size="0.0055 0.0005 0.0286" rgba=".9 .9 .9 1.0" mass="0.001" fluidshape="ellipsoid"/>
+                                <geom name="tail4_0" type="box" pos="0.012499999999999999 0 0" size="0.0015 0.0015 0.0286" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                                <site name="marker8_0" pos="0.012499999999999999 0 0.0286" size="0.005" rgba=".9 .4 .1 0.15"/>
+                                <geom name="tail4left_0"  type="box" pos="0.012499999999999999 -0.00475 0" size="0.0015 0.00475 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                                <geom name="tail4right_0" type="box" pos="0.012499999999999999  0.00475 0" size="0.0015 0.00475 0.005" rgba=".5 .7 .9 1.0" density="1250" fluidshape="ellipsoid"/>
+                                <site name="tail4left_0"  pos="0.012499999999999999 -0.0045 0" size="0.004" rgba="0 0 0 0"/>
+                                <site name="tail4right_0" pos="0.012499999999999999  0.0045 0" size="0.004" rgba="0 0 0 0"/>
+
+                                <!-- FIN - overrides childclass to fin_fluid zone [F2S] -->
+                                <geom name="finTail_0"   type="mesh"     mesh="finTail" pos="-0.312 0 0.01" quat="0.7071 -0.7071 0 0" rgba=".9 .2 .2 1.0" mass="0.01" class="fin_fluid" fluidshape="ellipsoid"/>
+                                <geom name="tensioner_0" type="cylinder" pos="0.035 0 0" quat="0.7071 0.7071 0 0" size="0.009 0.00975" rgba=".5 .7 .9 1.0" class="fin_fluid" fluidshape="ellipsoid"/>
+                                <site name="tail5left_0"  pos="0.035 -0.008 0" size="0.004" rgba="0 0 0 0"/>
+                                <site name="tail5right_0" pos="0.035  0.008 0" size="0.004" rgba="0 0 0 0"/>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+        
+        <site name="target" type="sphere" pos="1 0 0" size="0.05" rgba=".1 .8 .1 .4"/>
+    </worldbody>
+
+    <tendon>
+    
+        <spatial name="tendonLeft_0">
+            <site site="pulleyRight_0"/>
+            <site site="tail0left_0"/>
+            <site site="tail1left_0"/>
+            <site site="tail2left_0"/>
+            <site site="tail3left_0"/>
+            <site site="tail4left_0"/>
+            <site site="tail5left_0"/>
+        </spatial>
+        <spatial name="tendonRight_0">
+            <site site="pulleyLeft_0"/>
+            <site site="tail0right_0"/>
+            <site site="tail1right_0"/>
+            <site site="tail2right_0"/>
+            <site site="tail3right_0"/>
+            <site site="tail4right_0"/>
+            <site site="tail5right_0"/>
+        </spatial>
+        
+    </tendon>
+
+    <actuator>
+    
+        <position name="motor_0" joint="motor_0" kp="5.41" kv="0.0" ctrllimited="true" ctrlrange="-1.0000 1.0000" forcerange="-2.3 2.3"/>
+        
+    </actuator>
+
+    <sensor>
+    
+        <accelerometer name="accel_0" site="COM_0"/>
+        <gyro          name="gyro_0"  site="COM_0"/>
+        
+    </sensor>
+</mujoco>
+    

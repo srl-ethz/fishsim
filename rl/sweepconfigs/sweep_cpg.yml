@@ -1,0 +1,59 @@
+project: fishsim
+entity: srl_ethz
+
+method: bayes
+metric:
+  name: train/reward_mean
+  goal: maximize
+run_cap: 10000
+
+# Full pipeline curriculum: phases 1.1 (sensor noise) → 1.2 (physics DR) →
+# 2 (polar target widening), 10 stages total in a single training run.
+# LR resets to learningRate at phase boundaries (stages 3 and 6); within
+# each phase it decays by lr_scale at each stage transition.
+parameters:
+  env:
+    value: sofi_full_curriculum_cpg
+  nSteps:
+    value: 3000000
+  maxEpisodeSteps:
+    value: 800
+
+  # --- network ---
+  hiddenDim:
+    distribution: int_uniform
+    min: 128
+    max: 384
+  numLayers:
+    value: 3
+
+  # --- SAC core ---
+  learningRate:
+    distribution: log_uniform_values
+    min: 3.0e-5
+    max: 1.0e-3
+  batchSize:
+    distribution: categorical
+    values: [256, 512, 1024]
+  gamma:
+    distribution: uniform
+    min: 0.99
+    max: 0.998
+  tau:
+    distribution: uniform
+    min: 0.002
+    max: 0.01
+  train_freq:
+    value: 4
+  learningStarts:
+    distribution: int_uniform
+    min: 2000
+    max: 10000
+
+  # --- curriculum ---
+  # Multiplicative LR decay applied at intra-phase stage transitions.
+  # At phase boundaries (1.1→1.2, 1.2→2) LR is reset to learningRate instead.
+  lr_scale:
+    distribution: uniform
+    min: 0.2
+    max: 0.7

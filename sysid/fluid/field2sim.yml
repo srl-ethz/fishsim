@@ -1,0 +1,144 @@
+# Configuration for Field-to-Sim Synchronization and System Identification
+# --------------------------------------------------------------------------
+
+# 1. ENVIRONMENT
+environment:
+  density: 1000.0      # kg/m^3
+  viscosity: 0.0013    # Pa*s (Water at ~10-15°C)
+  dt: 0.001            # 1000Hz Simulation
+
+# 2. FLUID MODEL TUNING (SysID - Step A)
+# Vector length 5, 10, or 15 determines the segmentation mode.
+fluid_tuning:
+  coefficients: [0.005822, 0.044600, 0.812577, 0.521112, 0.902770, 0.039474, 0.551234, 5.427544, 0.000956, 1.581176, 0.170727, 0.003855, 18.310332, 10.148229, 5.951302]  # E13a best (loss=0.040059)
+
+# 2b. STRUCTURAL TUNING (from air benchmark SysID — step1_stiffness.py)
+# R4: N_TRANSIENT_CYCLES=1.0, all frequencies 1-4Hz, physical amplitude filter >=2.5mm
+structural:
+  hinge_stiffness: [2.988, 2.391, 2.123, 1.767, 1.323]  # Nm/rad, joint0→joint4
+  hinge_damping:   [0.0334, 0.0267, 0.0237, 0.0198, 0.0148]  # Nm·s/rad, joint0→joint4
+
+# 3. SENSORS & EKF (Validation - Step B)
+# These noise values determine the Kalman Gain (how much we trust the field data)
+sensors:
+  active: ['global_position', 'heading', 'motor_encoder', 'imu']
+  noise:
+    global_position: 0.01   # 1cm std dev for AprilTag X,Y
+    heading: 0.05           # std dev in rad (~3 deg) - adjust per yaw_source
+    motor_encoder: 0.001    # Very clean Dynamixel data
+    imu: 0.1                # Rad/s noise for GyrZ
+
+# Yaw source for Ghost fish teleportation and EKF heading measurement.
+# 'vision' : AprilTag only  (~30 Hz, lower amplitude, globally referenced)
+# 'imu'    : BNO055 RawY    (~35-55 Hz, higher amplitude, gyro-dominated at 1 Hz)
+# 'blend'  : weighted average: yaw = (1-alpha)*vision + alpha*imu
+#            alpha=1.0 -> full IMU,  alpha=0.0 -> full Vision
+yaw_source:
+  mode: 'vision'         # 'vision' | 'imu' | 'blend'
+  blend_alpha: 0.7    # only used when mode='blend'
+
+ekf_tuning:
+  process_noise_std: 0.5   # Match sim2sim; 0.5 was too large for sparse 30-55 Hz updates
+  bias_process_noise: 1e-6
+  initial_covariance: 0.1
+
+# 4. MOTOR CONTROL (Pulley System)
+motor:
+  kp: 800.0          # Position gain of the MuJoCo actuator — higher = faster tracking, less lag
+  kv: 20.0           # Velocity damping — higher = less overshoot
+  pulley_radius: 0.0175
+  # How the twin fish motor is driven:
+  # 'measured'  : ctrl = Ghost_Alpha (spline of real encoder) — twin replays what the fish actually did.
+  #               In real-time RL this becomes Meas_Alpha (live encoder feedback).
+  # 'commanded' : ctrl = Commanded_Alpha column in CSV if present, else Ghost_Alpha.
+  #               In real-time RL this becomes the raw policy output (alpha_target), letting
+  #               the MuJoCo actuator dynamics simulate the real motor's imperfect tracking.
+  twin_actuation: 'teleport'  # SysID: set qpos directly, zero tracking error
+
+# 5. SPATIAL COUPLING (Step B Only)
+# These "leash" the Twin Fish to the EKF estimate
+synchronization:
+  estimator_type: ES_EKF
+  translation:
+    stiffness: 0 #30.0 # Leave at 0 for SysID (Step A)
+    damping: 0 #0.6
+  rotation:
+    stiffness: 0 #8.0
+    damping: 0 #0.2
+  motor:
+    stiffness: 0.0 #0.0 # Leave at 0 for SysID (Step A)
+    damping: 0.0
+
+# 6. FREE-SWIM TEST (run_freeswim.py)
+# amp and offset are motor joint angles in radians (tendon_mm / pulley_radius 17.5mm)
+# e.g. 9mm → 0.514 rad | 7mm → 0.400 rad | 6mm/-3mm → amp=0.343 offset=-0.171
+freeswim:
+  duration: 10.0
+  # amp = steady-state fitted sinusoid amplitude from Ghost_Alpha (NOT peak-to-peak/2 from full run)
+  # Fitted values exclude startup transient overshoot. Real motor has bandwidth limits.
+  # Peak-to-peak/2 vs fitted (rad): 1Hz 0.644→0.652 | 2Hz 0.549→0.467 | 3Hz 0.378→0.300 | 4Hz 0.292→0.212
+  # ramp_time: seconds over which amplitude fades in from 0 (prevents jolt from rest)
+  # Chirp mode: use freq_start/freq_end/amp_start/amp_end instead of freq/amp
+  fish:
+    - {freq: 1.0, amp: 0.652, offset:  0.000, label: "1Hz (fitted 11.4mm)"}
+    - {freq: 2.0, amp: 0.467, offset:  0.000, label: "2Hz (fitted 8.2mm)"}
+    - {freq: 3.0, amp: 0.300, offset:  0.000, label: "3Hz (fitted 5.3mm)"}
+    - {freq: 4.0, amp: 0.212, offset:  0.000, label: "4Hz (fitted 3.7mm)"}
+    - {freq: 2.0, amp: 0.468, offset:  0.000, label: "2Hz (fitted 8.2mm, high amp run11)"}
+    - {freq: 1.5, amp: 0.560, offset:  0.000, label: "1.5Hz (interp fitted 9.8mm)"}
+    - {freq: 2.0, amp: 0.394, offset: -0.200, label: "2Hz turn L (fitted 6.9mm/-3.5mm)"}
+    - {freq: 2.0, amp: 0.394, offset:  0.200, label: "2Hz turn R (fitted 6.9mm/+3.5mm)"}
+    - {freq: 2.0, amp: 0.467, offset: -0.257, label: "2Hz tight turn L (fitted 8.2mm/-4.5mm)"}
+    - {freq: 3.0, amp: 0.300, offset: -0.171, label: "3Hz turn L (fitted 5.3mm/-3mm)"}
+    # --- Timed Turn: Straight → Turn → Straight ---
+    # Starts straight (offset=0), turns for a fixed interval, then resumes straight.
+    - {freq: 2.0, amp: 0.467, offset: 0.0, turn_offset: -0.257, turn_start: 2.0, turn_end: 6.0, label: "2Hz straight-turn-straight (4s turn)"}
+    # --- Flick and Hold: Swim → Hold side → Resume ---
+    # amp=0.467 (swimming), turn_amp=0.0 (stopped oscillation) during the turn interval.
+    - {freq: 2.0, amp: 0.467, offset: 0.0, turn_amp: 0.0, turn_offset: -0.900, turn_start: 3.0, turn_end: 5.0, turn_ramp: 0.1, label: "2Hz flick and hold (3s swim, 2s hold)"}
+    # --- Flick Start Refined: 1s Still → 3s Flick (-1.5) → Swim ---
+    - {freq: 2.0, amp: 0.467, offset: 0.0, turn_amp: 0.0, turn_offset: -1.500, turn_start: 1.0, turn_end: 4.0, turn_ramp: 0.1, label: "flick-start refined (1s still, 3s flick, then swim)"}
+    # --- Acceleration chirp: burst-start → cruise ---
+    # Sweeps from 4Hz/large-amp (sprint) down to 2Hz/cruise amp over 10s.
+    # ramp_time=0.5s fades amplitude in smoothly from rest.
+    - {freq_start: 4.0, freq_end: 2.0, amp_start: 0.212, amp_end: 0.467, ramp_time: 0.5, label: "chirp 4→2Hz (sprint→cruise)"}
+    - {freq_start: 3.0, freq_end: 1.5, amp_start: 0.300, amp_end: 0.560, ramp_time: 0.5, label: "chirp 3→1.5Hz (sprint→cruise)"}
+    # --- C-start: exponential amplitude/frequency decay from burst → cruise ---
+    # Biology: real fish (~30cm) hit max amplitude immediately; 2-3 large strokes decay to cruise.
+    # amp_tau / freq_tau: exponential time constants (seconds). sin(0)=0 → no jolt at t=0.
+    #
+    # Sharp C-start: 2 big strokes then at cruise. tau=0.5s → after 1 cycle (0.5s at 2Hz):
+    #   amp=0.535rad; after 2 cycles: amp=0.492rad ≈ cruise.
+    - {freq: 2.0, amp_start: 0.652, amp_end: 0.467, amp_tau: 0.5,
+       label: "C-start sharp: 2Hz, 2 strokes → cruise (τ=0.5s)"}
+    #
+    # Bio C-start: initial strokes faster (3Hz = ~real fast-start for 30cm fish) + amplitude decay.
+    #   Frequency and amplitude both settle toward cruise values.
+    - {freq_start: 3.0, freq_end: 2.0, freq_tau: 0.8, amp_start: 0.652, amp_end: 0.467, amp_tau: 1.0,
+       label: "C-start bio: 3→2Hz + amp decay (τ_f=0.8s τ_a=1.0s)"}
+    #
+    # Gradual burst: constant 2Hz, amplitude decays slowly — more cycles at high amp.
+    - {freq: 2.0, amp_start: 0.652, amp_end: 0.467, amp_tau: 1.5,
+       label: "burst gradual: 2Hz amp decay (τ=1.5s)"}
+
+# 7. TENDONFISH FREE-SWIM (run_freeswim_tendonfish.py)
+# freq: motor speed in Hz — motor spins continuously at 2π*freq rad/s; tail beats at the same rate
+# freq_left / freq_right: turning — alternates between two speeds each half-revolution
+#   slow side = wider arc, fast side = tighter arc → net turning bias
+tendonfish_freeswim:
+  duration: 10.0
+  fish:
+    - {freq: 1.0,                            label: "1Hz straight"}
+    - {freq: 2.0,                            label: "2Hz straight"}
+    - {freq: 3.0,                            label: "3Hz straight"}
+    - {freq: 4.0,                            label: "4Hz straight"}
+    - {freq_left: 1.0, freq_right: 2.0,      label: "turn L (slow-L/fast-R)"}
+    - {freq_left: 2.0, freq_right: 1.0,      label: "turn R (slow-R/fast-L)"}
+    - {freq_left: 1.0, freq_right: 3.0,      label: "tight turn L"}
+
+# 8. PATHS
+paths:
+  field_data: "${FISHDEPLOY_ROOT:-../fishdeploy}/field_test/data/20260401_first_swim/run_3_1.0Hz_9.0mm/processed/03_field2sim_ready.csv"
+  #field_data: "${FISHDEPLOY_ROOT:-../fishdeploy}/field_test/data/20260401_first_swim/run_9_2.0Hz_6.0mm_-3.0mm/processed/03_field2sim_ready.csv"
+  output_dir: "outputs/Field2Sim"
+  xml_filename: "geometry/SOFI_field2sim.xml"

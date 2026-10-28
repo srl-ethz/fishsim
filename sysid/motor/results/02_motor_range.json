@@ -1,0 +1,128 @@
+{
+  "sim_ctrlrange_rad": 0.8,
+  "deploy_motor_limit_rad": 1.0,
+  "mechanical_limit_estimated_rad": 0.8038,
+  "max_achieved_in_field_rad": 0.6427,
+  "static_hold_error_at_0p8rad_rad": -0.6409,
+  "field_test_tracking_summary": {
+    "run_10_4.0Hz_7.0mm": {
+      "freq_Hz": 4.0,
+      "amp_mm": 7.0,
+      "peak_goal_rad": 0.5599,
+      "peak_actual_rad": 0.3129,
+      "mean_abs_error": 0.3692
+    },
+    "run_11_2.0Hz_12.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 12.0,
+      "peak_goal_rad": 0.9587,
+      "peak_actual_rad": 0.6305,
+      "mean_abs_error": 0.5451
+    },
+    "run_12_2.0Hz_12.0mm_p-1600": {
+      "freq_Hz": 2.0,
+      "amp_mm": 12.0,
+      "peak_goal_rad": 0.9587,
+      "peak_actual_rad": 0.6259,
+      "mean_abs_error": 0.5416
+    },
+    "run_13_4.0Hz_9.0mm": {
+      "freq_Hz": 4.0,
+      "amp_mm": 9.0,
+      "peak_goal_rad": 0.7194,
+      "peak_actual_rad": 0.3206,
+      "mean_abs_error": 0.4791
+    },
+    "run_14_3.0Hz_9.0mm": {
+      "freq_Hz": 3.0,
+      "amp_mm": 9.0,
+      "peak_goal_rad": 0.7194,
+      "peak_actual_rad": 0.4372,
+      "mean_abs_error": 0.4556
+    },
+    "run_15_0.5Hz_9.0mm_final": {
+      "freq_Hz": 0.5,
+      "amp_mm": 9.0,
+      "peak_goal_rad": 0.7194,
+      "peak_actual_rad": 0.6427,
+      "mean_abs_error": 0.0786
+    },
+    "run_1_1.0Hz_5.0mm": {
+      "freq_Hz": 1.0,
+      "amp_mm": 5.0,
+      "peak_goal_rad": 0.3988,
+      "peak_actual_rad": 0.3605,
+      "mean_abs_error": 0.0711
+    },
+    "run_2_2.0Hz_5.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 5.0,
+      "peak_goal_rad": 0.3988,
+      "peak_actual_rad": 0.3528,
+      "mean_abs_error": 0.1336
+    },
+    "run_3_1.0Hz_9.0mm": {
+      "freq_Hz": 1.0,
+      "amp_mm": 9.0,
+      "peak_goal_rad": 0.7194,
+      "peak_actual_rad": 0.6427,
+      "mean_abs_error": 0.1299
+    },
+    "run_4_2.0Hz_9.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 9.0,
+      "peak_goal_rad": 0.7194,
+      "peak_actual_rad": 0.5829,
+      "mean_abs_error": 0.3556
+    },
+    "run_5_1.0Hz_7.0mm": {
+      "freq_Hz": 1.0,
+      "amp_mm": 7.0,
+      "peak_goal_rad": 0.5599,
+      "peak_actual_rad": 0.5062,
+      "mean_abs_error": 0.1075
+    },
+    "run_6_2.0Hz_7.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 7.0,
+      "peak_goal_rad": 0.5599,
+      "peak_actual_rad": 0.4893,
+      "mean_abs_error": 0.2267
+    },
+    "run_7_3.0Hz_7.0mm": {
+      "freq_Hz": 3.0,
+      "amp_mm": 7.0,
+      "peak_goal_rad": 0.5599,
+      "peak_actual_rad": 0.4096,
+      "mean_abs_error": 0.3369
+    },
+    "run_8_2.0Hz_6.0mm_3.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 6.0,
+      "peak_goal_rad": 0.7056,
+      "peak_actual_rad": 0.6075,
+      "mean_abs_error": 0.1833
+    },
+    "run_9_2.0Hz_6.0mm_-3.0mm": {
+      "freq_Hz": 2.0,
+      "amp_mm": 6.0,
+      "peak_goal_rad": 0.7102,
+      "peak_actual_rad": 0.6044,
+      "mean_abs_error": 0.1904
+    }
+  },
+  "static_hold_summary": {
+    "20260508_203317_straight_then_left": {
+      "hold_rows": 15,
+      "mean_hold_error_rad": -0.7086,
+      "std_hold_error_rad": 0.1774
+    },
+    "20260508_203547_straight_then_left": {
+      "hold_rows": 981,
+      "mean_hold_error_rad": -0.5731,
+      "std_hold_error_rad": 0.3347
+    }
+  },
+  "recommended_ctrlrange_rad": 0.8,
+  "notes": "Keep sim ctrlrange at ±0.8 rad. Mechanical limit is 0.80 rad (barely above current clip, no headroom). Max position achieved in field tests is 0.64 rad — the motor never exceeds 0.7 rad under sinusoidal drive, so there is no evidence that expanding the range would be exercised. Static hold error at 0.8 rad setpoint is −0.64 rad (>0.2 rad threshold), confirming the motor cannot reliably reach 0.8 rad in practice; increasing ctrlrange further would add unreachable sim states. The 0.8 rad clip should be retained, but future work should consider lowering effective amplitude commands in sim to match the 0.64 rad real-world ceiling."
+}

@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+.claude/
+CLAUDE.md
+MUJOCO_LOG.TXT
+
+# generated
+paper/out/
+paper/svg/
+geometry/SOFI_field2sim.xml
+geometry/_fig5_*.xml
+geometry/_*.xml
+sysid/**/plots/
+sysid/fluid/outputs/
+outputs/
+wandb/
+logs/
+*.log
+sysid/fluid/_*.yml

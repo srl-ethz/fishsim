@@ -1,0 +1,120 @@
+{
+  "unchanged_dr": {
+    "init_vel_trans_m_s": {
+      "type": "gaussian",
+      "std": 0.15,
+      "status": "unchanged"
+    },
+    "init_vel_rot_rad_s": {
+      "type": "gaussian",
+      "std": 0.3,
+      "status": "unchanged"
+    },
+    "body_mass_frac": {
+      "type": "gaussian",
+      "std": 0.05,
+      "status": "unchanged"
+    },
+    "body_inertia_frac": {
+      "type": "gaussian",
+      "std": 0.05,
+      "status": "unchanged"
+    },
+    "com_jitter_m": {
+      "type": "gaussian",
+      "std": 0.005,
+      "status": "unchanged"
+    },
+    "tail_stiffness_frac": {
+      "type": "gaussian",
+      "std": 0.15,
+      "status": "unchanged"
+    },
+    "tail_damping_frac": {
+      "type": "gaussian",
+      "std": 0.15,
+      "status": "unchanged"
+    },
+    "fluid_coeff_frac": {
+      "type": "gaussian",
+      "std": 0.2,
+      "status": "unchanged"
+    }
+  },
+  "new_dr": {
+    "motor_forcerange_Nm": {
+      "type": "uniform",
+      "range": [
+        1.61,
+        2.99
+      ],
+      "source": "module 01",
+      "status": "IMPLEMENT",
+      "impl": "model.actuator_forcerange[motor_idx] = [-fr, fr] per reset"
+    },
+    "motor_kp_Nm_per_rad": {
+      "type": "uniform",
+      "range": [
+        0.7,
+        10.4
+      ],
+      "source": "module 06",
+      "status": "IMPLEMENT",
+      "impl": "model.actuator_gainprm[motor_idx, 0] = kp; model.actuator_biasprm[motor_idx, 1] = -kp"
+    },
+    "motor_kv_Nm_s_per_rad": {
+      "type": "uniform",
+      "range": [
+        0.0,
+        0.6
+      ],
+      "source": "module 06",
+      "status": "IMPLEMENT",
+      "impl": "model.actuator_biasprm[motor_idx, 2] = -kv"
+    },
+    "motor_zero_offset_rad": {
+      "type": "uniform",
+      "range": [
+        -0.05,
+        0.05
+      ],
+      "source": "tendon pre-tension variation \u2248 \u00b10.625mm at 12.5mm pulley",
+      "status": "IMPLEMENT",
+      "impl": "data.qpos[motor_joint_id] += rng.uniform(-0.05, 0.05) in reset_model()"
+    },
+    "camera_fps_hz": {
+      "type": "per_episode",
+      "mean": 53.18,
+      "range": [
+        39.4,
+        66.9
+      ],
+      "jitter_std_s": 0.01247,
+      "source": "module 05",
+      "status": "IMPLEMENT",
+      "impl": "SensorModel: randomise camera_period at episode reset; sample each inter-frame interval from Normal(1/fps_episode, jitter_std)"
+    },
+    "tendon_deadzone_rad": {
+      "type": "uniform",
+      "range": [
+        0.0,
+        0.15
+      ],
+      "source": "designed \u2014 not yet measured",
+      "status": "DESIGNED_NOT_IMPLEMENTED",
+      "impl": "asymmetric forcerange on slack side \u2014 deferred, requires non-standard MuJoCo workaround"
+    }
+  },
+  "summary": {
+    "items_to_implement": [
+      "motor_forcerange_Nm",
+      "motor_kp_Nm_per_rad",
+      "motor_kv_Nm_s_per_rad",
+      "motor_zero_offset_rad",
+      "camera_fps_hz"
+    ],
+    "items_deferred": [
+      "tendon_deadzone_rad"
+    ]
+  }
+}
