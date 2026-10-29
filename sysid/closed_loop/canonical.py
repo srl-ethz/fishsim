@@ -8,17 +8,24 @@ for the conversion code). These helpers are the subset of that workspace the two
 from __future__ import annotations
 import json
 import os
+import re
 import numpy as np
 import yaml
 from scipy.interpolate import interp1d
 
 
+def slug(name: str) -> str:
+    """File-name form of a hand-written run name: ASCII letters, digits and underscores only
+    ('Weird Run 180° Turn' -> 'Weird_Run_180_Turn'). The manifests keep the human names."""
+    return re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
+
+
 def run_slug(num: int, name: str) -> str:
-    return f"{num:03d}_{name}"
+    return f"{num:03d}_{slug(name)}"
 
 
 def part_id(num: int, name: str, part: int) -> str:
-    return f"{num:03d}_{name}__p{part}"
+    return f"{num:03d}_{slug(name)}__p{part}"
 
 
 def load_layer2(path: str) -> list:

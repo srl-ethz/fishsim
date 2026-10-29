@@ -75,15 +75,6 @@ def load_render(path: Path, width_px: int = 1100) -> Image.Image:
     im = im.crop(bbox)
     return im.resize((width_px, round(width_px * im.height / im.width)), Image.LANCZOS)
 
-def montage_panel(path: Path, which: str) -> Image.Image:
-    """Crop one 892x501 panel out of draft/deploy_strobe_montage.png (bounds measured)."""
-    im = Image.open(path).convert("RGB")
-    rows = [(49, 550), (642, 1143)]
-    cols = [(4, 896), (904, 1796), (1805, 2697)]
-    k = "abcdef".index(which)
-    r, c = divmod(k, 3)
-    return im.crop((cols[c][0], rows[r][0], cols[c][1], rows[r][1]))
-
 def crop_aspect(im: Image.Image, aspect: float, y_center_frac: float = 0.5,
                 x_center_frac: float = 0.5) -> Image.Image:
     w, h = im.size

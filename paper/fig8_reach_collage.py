@@ -133,7 +133,7 @@ def _to_start_frame(P, T, yaw0, tw_med, lat_sign, truncate):
 
 
 def geom(run, outcome):
-    # truncate at closest for successes; also for finetune_run_4 (its full path wanders on partial video)
+    # truncate at closest for successes; also for finetune_run_4 (a fail whose full path wanders on partial video)
     trunc = (outcome == "success") or (run == "finetune_run_4")
     c = np.load(os.path.join(CACHE, f"{run}.npz"), allow_pickle=True)
     r = np.load(os.path.join(REDET, f"{run}_redetect.npz"), allow_pickle=True)
@@ -176,15 +176,13 @@ def separate(P, min_sep=0.17, iters=80):
     return P
 
 
-# strict-threshold reclassification (reached only 246 mm > 50 mm) -- plot-level, source CSV untouched
-FORCE_OUTCOME = {"finetune_run_4": "fail"}
 
 # compute geometry once per run
 ITEMS = []
 for r in csv.DictReader(open(os.path.join(ANA, "reachability/run_geometry.csv"))):
     if r["group"] not in ("static", "disturbance"):
         continue
-    out = FORCE_OUTCOME.get(r["run"], r["outcome"])
+    out = r["outcome"]
     g = geom(r["run"], out)
     if g is None:
         print("skip", r["run"]); continue
