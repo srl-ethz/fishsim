@@ -54,7 +54,7 @@ right are both right), and a deterministic evaluation underestimates the policy 
 ## The direct-action comparison
 
 `rl/environments/da/` is the same curriculum with the motor setpoint as the action (1-D, 40-D observation
-with motor history), trained with `rl/sweepconfigs/sweep_da.yml` against `geometry/sofi_motorid.py` (refitB
+with motor history), trained with `rl/sweepconfigs/sweep_da.yml` against the direct-action model, `SYSTEMPARAMETERS_MOTORID` in `geometry/sofi.py` (refitB
 fluid, identified motor). The resulting policy (`policies/sofi_da_rl_policy.zip`) swims in simulation by
 exploiting high-frequency tail flicks that the stateless fluid model rewards (paper Fig. 9 and Fig. 10).
 `sweep_da_fof.yml` is the same recipe with a first-order 4.5 Hz low-pass filter on the setpoint

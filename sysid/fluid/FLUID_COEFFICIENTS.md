@@ -20,7 +20,7 @@ Using the wrong config will change simulation physics and produce inconsistent r
 | E13+ | SW-derived explicit inertial: 830g total (head 580g+body 250g), COM=[−7.97, +1.33, +0.17] mm MuJoCo, Ixx=0.00155 kg·m²; per-joint k/d from R4; motor child ≈0g | per-joint (structural block) | *(none, current model)* |
 
 **To switch configs before running `eval_sysid.py`:**
-- `hingeDamping` is in `Geometry/sofi_twin.py` → `SYSTEMPARAMETERS["hingeDamping"]`
+- `hingeDamping` is the `structural.hinge_damping` block of `field2sim.yml` (and `SYSTEMPARAMETERS["hingeDamping"]` in `geometry/sofi.py`)
 - Mass model is controlled by the `--legacy_mass` flag (eval script reads it and patches the XML at runtime)
 - After evaluating an older entry, restore `hingeDamping` to the value for the current active experiment
 

@@ -9,13 +9,13 @@ import numpy as np
 from gymnasium import utils
 
 from .env_sofi_da import BaseFishEnvDA
-from geometry.sofi_motorid import generate_xml, SYSTEMPARAMETERS
+from geometry.sofi import generate_xml, SYSTEMPARAMETERS_MOTORID as SYSTEMPARAMETERS
 
 
 class FishEnv(BaseFishEnvDA, utils.EzPickle):
 
     # Optional per-variant fluid override. None → use the generator default
-    # (refitB, from sofi_motorid). A subclass can set the 15-coef vector (e.g. E13a)
+    # (refitB, SYSTEMPARAMETERS_MOTORID in geometry/sofi.py). A subclass can set the 15-coef vector (e.g. E13a)
     # to train the same motor/curriculum on a different fluid model.
     FLUID_COEF = None
 

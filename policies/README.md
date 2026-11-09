@@ -11,5 +11,5 @@ Stable-Baselines3 SAC checkpoints (`SAC.load(path)`, SB3 2.6.0, torch 2.6.0), tr
 
 The paper calls the CPG policy the trajectory generator (TG). It was trained with the E13a fluid set and the
 kp 800 motor model (`geometry/sofi.py`); the two direct-action policies with the refitB fluid set and
-the identified motor (`geometry/sofi_motorid.py`).
+the identified motor (`SYSTEMPARAMETERS_MOTORID` in `geometry/sofi.py`).
 Retraining: `docs/TRAINING.md`. On the fish both run with stochastic inference.

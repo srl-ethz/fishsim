@@ -25,8 +25,7 @@ from scipy.optimize import curve_fit
 from scipy.fft import rfft, rfftfreq
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from geometry.sofi_twin import generate_xml as _generate_xml_current
-from geometry.sofi_twin import SYSTEMPARAMETERS as _SP_CURRENT
+from geometry.sofi import generate_fit_xml as _generate_xml_current, SYSTEMPARAMETERS_FIT as _SP_CURRENT
 
 _generate_xml = _generate_xml_current
 _SP_TEMPLATE  = _SP_CURRENT

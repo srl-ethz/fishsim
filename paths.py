@@ -11,7 +11,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent
 FISHDEPLOY = Path(os.environ.get("FISHDEPLOY_ROOT", REPO.parent / "fishdeploy")).resolve()
 
-GEOMETRY = REPO / "geometry"                  # sofi.py → SOFI.xml, sofi_motorid.py → SOFI_motorid.xml, sofi_twin.py, meshes/
+GEOMETRY = REPO / "geometry"                  # sofi.py → SOFI.xml, SOFI_motorid.xml and the fit scene; meshes/
 POLICIES = REPO / "policies"
 
 DATA = FISHDEPLOY / "data"

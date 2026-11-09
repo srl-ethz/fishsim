@@ -46,7 +46,7 @@ import cma
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from geometry.sofi_twin import generate_xml, SYSTEMPARAMETERS
+from geometry.sofi import generate_fit_xml as generate_xml, SYSTEMPARAMETERS_FIT as SYSTEMPARAMETERS
 from sysid.fluid.es_ekf import FishESEKF
 
 plt.rcParams.update({

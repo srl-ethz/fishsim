@@ -12,7 +12,7 @@ import os, sys, argparse, numpy as np, mujoco, cv2
 
 from _paths import REPO as _REPO, OUT as _OUT
 sys.path.insert(0, str(_REPO))
-import geometry.sofi_motorid as gen
+import geometry.sofi as gen
 OUT = str(_OUT / "40_hull_hinges_fluid.png")   # the committed copy is paper/static/40_hull_hinges_fluid.png
 
 COL_HEAD = [0.25, 0.45, 1.00, 0.45]   # blue
@@ -46,7 +46,7 @@ def fluid_semiaxes(model, g):
 
 def build_model():
     xml = os.path.join(FISHCREATE, "geometry", "_hull_fig_tmp.xml")
-    gen.generate_xml(gen.SYSTEMPARAMETERS, filename=xml)
+    gen.generate_xml(gen.SYSTEMPARAMETERS_MOTORID, filename=xml)
     model = mujoco.MjModel.from_xml_path(xml); data = mujoco.MjData(model)
     os.remove(xml)
     for g in range(model.ngeom):

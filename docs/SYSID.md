@@ -26,12 +26,14 @@ so friction and backlash average out, and the fit does not depend on the fluid o
 Input: `fishdeploy/data/01_field_openloop_20260401/run_*/processed/03_field2sim_ready.csv`, the
 resampled pose, motor and IMU of each run.
 
-`sysid/fluid/opt_field2sim.py` builds a two-fish model (`geometry/sofi_twin.py`): a "ghost"
-fish is driven to the measured state through an error-state Kalman filter (`es_ekf.py`) and the "twin"
-runs free with the same motor command. The loss is the twin's position error over time, with the start
-transient weighted four times and a sinusoid-fit term on the tail. CMA-ES over the 15 coefficients
-(head, tail body and fin: three ellipsoid drag coefficients plus Kutta lift and Magnus terms each),
-inside physical bounds:
+`sysid/fluid/opt_field2sim.py` is a feed-forward replay: the simulated fish's motor angle is set to the
+measured angle at every step (1 kHz), the fish swims under a candidate set of fluid coefficients, and the
+loss is the position error between its head path and the measured AprilTag path over the run, with the
+start transient weighted four times (the acceleration phase is what separates coefficient sets) and a
+second replay driven by the fitted sinusoid of the motor signal blended in. CMA-ES searches the 15
+coefficients (head, tail body and fin: three ellipsoid drag coefficients plus Kutta lift and Magnus terms
+each) inside physical bounds. Nothing else enters: no state estimator, no coupling of the simulated fish
+to the measurement during the run.
 
 ```bash
 python sysid/fluid/opt_field2sim.py \
@@ -61,7 +63,7 @@ when it finishes; `git checkout sysid/fluid/field2sim.yml` restores E13a. `sysid
 E13) with what changed between them. Paper Fig. 5 (`paper/fig5_fluidfit.py`) replays the fitted and
 held-out runs through this model.
 
-The direct-action model (`geometry/sofi_motorid.py`) uses a later refit, **refitB**, made on the
+The direct-action model (`SYSTEMPARAMETERS_MOTORID` in `geometry/sofi.py`) uses a later refit, **refitB**, made on the
 closed-loop deployment runs with a windowed multiple-shooting loss (the original pipeline lived in a private workspace; its
 results are in the archive, `05_fluid_identification/closed_loop_refit/`); section 3 below has the public
 version of that fit.
@@ -77,7 +79,7 @@ letters, digits and underscores (`canonical.slug`).
 ```bash
 python sysid/closed_loop/fit_motor.py --joint-damping 0.48 --fix-kv 0     # the identified motor (paper Table "motor")
 python sysid/closed_loop/refit_fluid.py --train 006_Normal_Run__p1 ... --val 002_Relief__p1 ... \
-       --iter 400 --backward_penalty 5.0                                   # the refitB fluid set of geometry/sofi_motorid.py
+       --iter 400 --backward_penalty 5.0                                   # the refitB fluid set of the direct-action model
 ```
 
 `fit_motor.py` drives the full `SOFI_motorid.xml` fish with the logged setpoints and fits the position gain
@@ -85,7 +87,7 @@ and rotor armature (with the joint damping set to the back-EMF value 0.48 N m s/
 the hardware's 2.3 N m) to the measured motor angle; the committed result is
 `sysid/closed_loop/results/motor_id/fitted_params_b048_kv0.json` (kp 5.41, armature 0.0113, 14 ms delay).
 `refit_fluid.py` is the CMA-ES fit of the 15 coefficients on those segments with an explicit penalty on
-backward swimming; its result `results/refitB_fwdonly/result.yml` is `SYSTEMPARAMETERS["fluidCoef"]` in
-`geometry/sofi_motorid.py`. A refit after correcting the centre of mass (refitC, archive) did not lower the fin
+backward swimming; its result `results/refitB_fwdonly/result.yml` is the `fluidCoef` of `SYSTEMPARAMETERS_MOTORID` in
+`geometry/sofi.py`. A refit after correcting the centre of mass (refitC, archive) did not lower the fin
 coefficients, which is the evidence in the paper that the inflated fin terms stand in for unsteady thrust
 rather than for a mass error (`docs/com_frame_bug.md`).

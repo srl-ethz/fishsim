@@ -658,7 +658,7 @@ hingeDamping:   {np.round(c_joints, 4).tolist()}
 
 - Implement `step3_mujoco_validation.py`: fixed-head MuJoCo simulation with per-joint
   stiffness to verify the H(ω) response matches measurement.
-- Update `sofi_twin.py` to accept per-joint `hingeStiffness` list instead of
+- Update `geometry/sofi.py` to accept per-joint `hingeStiffness` list instead of
   a single scalar.
 - Run fluid SysID E13 with corrected stiffness and tighter c_angular ceiling.
 """

@@ -15,7 +15,7 @@ learning, and the paper's figures. The hardware, the field tests and the measure
  ─────────────────────                   ───────                                     ──────────
  tail sweeps in air  ──► sysid/tail_stiffness ──► hinge k, d ─┐
                                                               ├─► geometry/sofi.py ─► SOFI.xml ─► rl/ (SAC, CPG actions, curriculum) ─► policies/sofi_cpg_rl_policy.zip ─► deploy/
- 12 open-loop pool runs ─► sysid/fluid (ghost/twin, CMA-ES) ─► 15 fluid coefficients ─┘                                                                                    │
+ 12 open-loop pool runs ─► sysid/fluid (replay, CMA-ES)     ─► 15 fluid coefficients ─┘                                                                                    │
                                                                                                                               45 closed-loop runs ◄──────────────────────────┘
                                                                                                                                         │
                                                                                                                    paper/ (the ten figures) ◄─┘
@@ -36,7 +36,7 @@ Python 3.11, MuJoCo 3.3.1, Stable-Baselines3 2.6.0. The paper figures also need 
 Run from the repository root; each one is documented in `docs/`.
 
 ```bash
-python geometry/sofi.py                                  # 1. build the model (geometry/SOFI.xml)
+python geometry/sofi.py                                           # 1. build the model (geometry/SOFI.xml; --model motorid for the direct-action one)
 python sysid/tail_stiffness/step1_stiffness.py                   # 2. fit the hinge stiffness and damping to the air sweeps
 python sysid/fluid/opt_field2sim.py <six run dirs> --n_coef 15 --optimizer cma --physics_bounds \
        --iter 1000 --start_weight 4.0 --random_start --sinusoid_weight 0.4    # 3. fit the 15 fluid coefficients (docs/SYSID.md)
@@ -49,8 +49,8 @@ make -C paper figures check                                       # 5. rebuild t
 
 | Folder | What |
 |---|---|
-| `geometry/` | `sofi.py`: the identified model (E13a fluid, measured hinge stiffness and damping, CAD inertia, kp 800 servo) that generates `SOFI.xml`. `sofi_motorid.py`: the direct-action variant (refitB fluid, identified servo). `sofi_twin.py`: the two-fish model the fluid fit runs. `meshes/`: the four CAD meshes the models load |
-| `sysid/` | `tail_stiffness/`: the dynamic stiffness fit (paper Fig. 4). `fluid/`: the E13a fluid fit on the open-loop runs by ghost-and-twin replay with CMA-ES (Table I). `closed_loop/`: the fits on the curated deployment segments, `refit_fluid.py` (the direct-action fluid set) and `fit_motor.py` (the identified motor, paper Table "motor") |
+| `geometry/` | `sofi.py`: one generator, three parameter sets. `SYSTEMPARAMETERS` is the identified model the deployed policy was trained on (E13a fluid, measured hinge stiffness and damping, CAD inertia, kp 800 servo) and writes `SOFI.xml`; `SYSTEMPARAMETERS_MOTORID` the direct-action variant (refitB fluid, identified motor), `SOFI_motorid.xml`; `--fit` writes the fluid fit's scene from `sysid/fluid/field2sim.yml`. `meshes/`: the four CAD meshes |
+| `sysid/` | `tail_stiffness/`: the dynamic stiffness fit (paper Fig. 4). `fluid/`: the E13a fluid fit on the open-loop runs, a feed-forward replay of the measured motor angle compared with the measured path, searched with CMA-ES (Table I). `closed_loop/`: the fits on the curated deployment segments, `refit_fluid.py` (the direct-action fluid set) and `fit_motor.py` (the identified motor, paper Table "motor") |
 | `rl/` | `environments/cpg/`: the Gymnasium environment with CPG actions and the sensor-noise, physics-randomisation and target curriculum stages. `environments/da/`: the direct-action comparison (with and without the setpoint filter). `models/`: sensor and physics randomisation. `train_rl_curriculum.py`, `opt_hyperRL.py`, the three sweeps in `sweepconfigs/`, `eval/` |
 | `policies/` | The three policies of the paper with provenance: the deployed trajectory-generator policy (md5 `7bbe08b8`), direct action, and direct action with a setpoint filter |
 | `paper/` | One script per figure, `make figures`, `make check`, the static images, the cached simulation inputs, the submitted PDFs as reference |

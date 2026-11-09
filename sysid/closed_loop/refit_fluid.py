@@ -53,14 +53,12 @@ _REPO_ROOT   = os.path.dirname(os.path.dirname(_SCRIPT_DIR))  # fishsim/
 sys.path.insert(0, _REPO_ROOT)
 from paths import CANONICAL as _CANONICAL  # noqa: E402
 
-# The geometry generator is swappable via an env var (read at import time, so inherited by the
-# forked workers); the default is the direct-action model whose fluid this fit identifies.
-import importlib
-_GENERATOR_MODULE = os.environ.get("FLUIDID_GENERATOR", "geometry.sofi_motorid")
-_gen_mod = importlib.import_module(_GENERATOR_MODULE)
-generate_xml, SYSTEMPARAMETERS = _gen_mod.generate_xml, _gen_mod.SYSTEMPARAMETERS
-print(f"[refit_fluid] geometry generator: {_GENERATOR_MODULE}  "
-      f"centerOfMass={SYSTEMPARAMETERS.get('centerOfMass')}")
+# The model whose fluid this fit identifies: the direct-action model (FLUIDID_MODEL=default picks the servo
+# model instead; read at import time, so inherited by the forked workers).
+from geometry.sofi import generate_xml, MODELS as _MODELS
+_MODEL_NAME = os.environ.get("FLUIDID_MODEL", "motorid")
+SYSTEMPARAMETERS = _MODELS[_MODEL_NAME]
+print(f"[refit_fluid] geometry model: {_MODEL_NAME}  centerOfMass={SYSTEMPARAMETERS.get('centerOfMass')}")
 from sysid.closed_loop import canonical as CUR
 
 matplotlib.use("Agg")
@@ -1054,7 +1052,7 @@ def main() -> None:
     if val_loss is not None:
         print(f"  Val loss (mean) : {val_loss:.6f}")
     print(f"  Saved to        : {result_path}")
-    print(f"\n  Best coef (paste into geometry/sofi_motorid.py SYSTEMPARAMETERS):")
+    print(f"\n  Best coef (paste into SYSTEMPARAMETERS_MOTORID in geometry/sofi.py):")
     coef = best_coef[0]
     print(f"    fluidCoef:")
     labels = [

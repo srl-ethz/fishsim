@@ -1,16 +1,29 @@
 ################################################################################
-# SOFI Geometry Generator — RL geometry with SolidWorks-derived inertia,
-# SysID-tuned per-joint stiffness/damping, and segmented 15-coef fluid model.
-# Retargeted at hybrid CPG-position RL training:
-#   1. Single-fish default (numberOfFish=1, ghost_ids=frozenset()) — no SysID ghost.
-#   2. motor_ctrlrange / motor_forcerange exposed as SYSTEMPARAMETERS knobs;
-#      actuator ctrlrange/forcerange and motor-joint range track them consistently.
-#   3. Softer position loop (motor_kp=100, motor_kv=1.0) so the CPG's first-order
-#      filter dominates the actuation time-constant rather than the motor PD.
+# SOFI geometry generator: the one MuJoCo model of the fish, three parameter sets.
+#
+#   SYSTEMPARAMETERS           the model the deployed policy was trained on (E13a fluid, measured hinge
+#                              stiffness and damping, CAD inertia, kp 800 position servo)  -> SOFI.xml
+#   SYSTEMPARAMETERS_MOTORID   the same fish with the later identification from the deployment runs:
+#                              refitB fluid, the identified motor (kp 5.41, rotor inertia, back-EMF as joint
+#                              damping, 2.3 N m)                                            -> SOFI_motorid.xml
+#   SYSTEMPARAMETERS_FIT       the scene of the fluid fit (sysid/fluid), whose coefficients, hinge values
+#                              and motor gains come from field2sim.yml at generation time   -> SOFI_fit.xml
+#
+#   python geometry/sofi.py                     # SOFI.xml
+#   python geometry/sofi.py --model motorid     # SOFI_motorid.xml
+#   python geometry/sofi.py --fit [--config sysid/fluid/field2sim.yml]
+#
+# Everything is a plain MuJoCo XML written by generate_xml(); the environments regenerate it on start, so
+# the XML files are derived, never edited by hand. Inertia from SolidWorks, tail hinges from the air
+# benchmark, fluid from the field runs (docs/SYSID.md).
 ################################################################################
 
-import numpy as np
+import argparse
+import copy
 import os
+
+import numpy as np
+import yaml
 
 SYSTEMPARAMETERS = {
     "filename": "geometry/SOFI.xml",
@@ -85,7 +98,66 @@ SYSTEMPARAMETERS = {
 }
 
 
-def generate_xml(args, ghost_ids=frozenset(), filename=None):
+# The direct-action model: the same fish, identified again on the closed-loop deployment segments
+# (sysid/closed_loop/): the refitB fluid set and the measured motor. The back-EMF of the servo is a joint
+# damping outside the actuator's force clip, which caps the motor speed near 4.8 rad/s (2.3 N m / 0.48).
+SYSTEMPARAMETERS_MOTORID = copy.deepcopy(SYSTEMPARAMETERS)
+SYSTEMPARAMETERS_MOTORID.update({
+    "filename": "geometry/SOFI_motorid.xml",
+    "fluidCoef": [
+        0.0030076886991375453, 0.007421699329398956, 3.9128899146717604,
+        0.6465861250145061, 1.9956571077573644,                                  # head
+        0.06355006839780405, 2.350250276599493, 12.355839847101345,
+        0.4694493374017906, 5.14493552073114,                                    # tail body
+        0.14620017203422025, 1.58148248493131, 2.001650696495574,
+        14.306736876832357, 5.411147556211791,                                    # fin
+    ],
+    "motor_kp": 5.41,           # kv=0 fit (held-out 2.27 deg)
+    "motor_kv": 0.0,            # back-EMF moved to joint damping
+    "motor_armature": 0.0113,   # reflected rotor inertia
+    "motor_jointdamping": 0.48, # b = forcerange / v_max = 2.3 / 4.79 -> hard velocity cap ~4.8 rad/s
+    "motor_ctrlrange": 1.0,     # +- rad target angle (written in radians, see the actuator line)
+    "motor_forcerange": 2.3,    # +- N m torque cap; with b the speed cap scales with the force cap (voltage sag)
+    "motor_ctrlrange_in_degrees": False,
+})
+
+# The scene of the fluid fit: fish 0 is the simulated fish; fish 1, when present, is the transparent
+# "ghost" that follows the measured pose for the eye (no fluid forces, no contacts).
+SYSTEMPARAMETERS_FIT = copy.deepcopy(SYSTEMPARAMETERS)
+SYSTEMPARAMETERS_FIT.update({"filename": "geometry/SOFI_twin.xml", "numberOfFish": 2})
+for _k in ("fluidCoef", "hingeStiffness", "hingeDamping", "motor_ctrlrange", "motor_forcerange"):
+    SYSTEMPARAMETERS_FIT.pop(_k)          # these come from the fit's config file (generate_fit_xml)
+
+MODELS = {"default": SYSTEMPARAMETERS, "motorid": SYSTEMPARAMETERS_MOTORID}
+
+
+def generate_fit_xml(args, config_path="sysid/fluid/field2sim.yml", ghost_ids=frozenset({0})):
+    """The fluid fit's scene: coefficients, hinge values, environment and motor gains from `config_path`
+    (the optimiser writes a temporary copy per candidate), the fish of `ghost_ids` as a transparent
+    reference without physics. Writes args["filename"]."""
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+    env = config["environment"]
+    args["fluidDensity"]   = env["density"]
+    args["fluidViscosity"] = env["viscosity"]
+    args["dt"]             = env["dt"]
+    args["pulley_radius"]  = config["motor"]["pulley_radius"]
+    args["motor_kp"]       = config["motor"]["kp"]
+    args["motor_kv"]       = config["motor"]["kv"]
+    args["fluidCoef"]      = config["fluid_tuning"]["coefficients"]
+    structural = config.get("structural", {})
+    if not structural:
+        raise ValueError("Config is missing the 'structural' block (hinge_stiffness/hinge_damping). "
+                         "Run step1_stiffness.py and add the structural block to field2sim.yml.")
+    args["hingeStiffness"] = structural["hinge_stiffness"]
+    args["hingeDamping"]   = structural["hinge_damping"]
+    return generate_xml(args, ghost_ids=ghost_ids, filename=args["filename"], fit_scene=True)
+
+
+def generate_xml(args, ghost_ids=frozenset(), filename=None, fit_scene=False):
+    """Write the MuJoCo XML for `args` (one of the parameter sets above, possibly modified).
+    fit_scene: the fluid fit's variant (model name, cameras, a +-0.6 rad motor joint limit and an open
+    actuator range, as the E13a fit was run)."""
     # --- 1. PER-JOINT HINGE STIFFNESS / DAMPING ---
     # Accept scalar (broadcast to 5) or list-of-5.
     ks_raw = args["hingeStiffness"]
@@ -122,7 +194,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     stiffness_head  = 0
     damping_head    = 0
     stiffness_motor = 0
-    damping_motor   = 0
+    damping_motor   = args.get("motor_jointdamping", 0)   # the identified back-EMF damping; 0 for the servo model
 
     # Pulley tangent angles (PULLEY mode only - field robot is always PULLEY)
     tx   = (0.198 + args["body-tail0"] / 2) - 0.12
@@ -133,13 +205,33 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     theta_l = -phi + alpha_tangent   # pulleyRight site
     theta_r =  phi - alpha_tangent   # pulleyLeft  site
 
+    # The fit scene was built with these variants and E13a was identified on them; kept as they were.
+    model_name = "SOFI_field2sim" if fit_scene else "SOFI"
+    motor_limit = 'limited="true" range="-0.6 0.6"' if fit_scene else 'limited="false"'
+    overhead_comment = "        <!-- [F2S] Camera centered on midpoint of ~3 m swim path in -X direction -->\n" if fit_scene else ""
+    if fit_scene:
+        actuator_ranges = 'ctrlrange="-1.14 1.14" forcerange="-300 300"'
+    else:
+        # the servo model's range was written in degrees (MuJoCo's default angle unit), the identified
+        # motor's in radians; both are kept as the models were trained
+        cr = np.degrees(args["motor_ctrlrange"]) if args.get("motor_ctrlrange_in_degrees", True) else args["motor_ctrlrange"]
+        fr = args["motor_forcerange"]
+        actuator_ranges = f'ctrlrange="-{cr:.4f} {cr:.4f}" forcerange="-{fr} {fr}"'
+
     fishBodyXMLs = []
     for i in range(N):
+        if fit_scene:
+            cameras = (f'            <camera name="tracking_{i}" mode="track" pos="4 -4 4" xyaxes="1 1 0 -0.5 0.5 1"/>\n'
+                       f'            <camera name="closeup_{i}"  mode="track" pos="2 -2 2" xyaxes="1 1 0 -0.5 0.5 1"/>')
+        else:
+            cameras = (f'            <camera name="tracking_{i}"      mode="track" pos="4 -4 4"      xyaxes="1 1 0 -0.5 0.5 1"/>\n'
+                       f'            <camera name="closeup_{i}"       mode="track" pos="2 -2 2"      xyaxes="1 1 0 -0.5 0.5 1"/>\n'
+                       f'            <camera name="overhead_track_{i}" mode="track" pos="0.17 0 0.5" xyaxes="1 0 0 0 1 0"/>')
         # Single fish with full fluid forces
-        fs = f_shape
+        fs = "none" if i in ghost_ids else f_shape      # the ghost has no fluid forces
 
         # Opaque visualization
-        a = 1.0
+        a = 0.3 if i in ghost_ids else 1.0               # and is drawn transparent
         c_alu          = f".5 .7 .9 {a}"
         c_dark         = f".1 .1 .1 {a}"
         c_light        = f".9 .9 .9 {a}"
@@ -152,9 +244,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
 
         fishBodyXMLs.append(f"""
         <body pos="0 0 0" name="fish_{i}" childclass="tail_fluid">
-            <camera name="tracking_{i}"      mode="track" pos="4 -4 4"      xyaxes="1 1 0 -0.5 0.5 1"/>
-            <camera name="closeup_{i}"       mode="track" pos="2 -2 2"      xyaxes="1 1 0 -0.5 0.5 1"/>
-            <camera name="overhead_track_{i}" mode="track" pos="0.17 0 0.5" xyaxes="1 0 0 0 1 0"/>
+{cameras}
 
             <joint name="headX_{i}"     pos="{args["centerOfMass"][0]} {args["centerOfMass"][1]} {args["centerOfMass"][2]}" type="slide" axis="1 0 0" stiffness="{stiffness_head}" damping="{damping_head}"/>
             <joint name="headY_{i}"     pos="{args["centerOfMass"][0]} {args["centerOfMass"][1]} {args["centerOfMass"][2]}" type="slide" axis="0 1 0" stiffness="{stiffness_head}" damping="{damping_head}"/>
@@ -198,7 +288,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
                   mass="0.100" rgba="0.3 0.3 0.3 0.5" fluidshape="none" contype="0" conaffinity="0"/>
             -->
             <body pos="0.12 0 0" name="motor_{i}">
-                <joint name="motor_{i}" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" stiffness="{stiffness_motor}" damping="{damping_motor}" armature="0.001"/>
+                <joint name="motor_{i}" type="hinge" axis="0 0 1" pos="0 0 0" {motor_limit} stiffness="{stiffness_motor}" damping="{damping_motor}" armature="{args.get('motor_armature', 0.001)}"/>
                 <geom name="motorShaft_{i}"  type="cylinder" pos="0 0 0"                      size="0.005 {args['motorShaftLength']/2}"  rgba="{c_dark}"     mass="0.001" fluidshape="none"/>
                 <geom name="motorPulley_{i}" type="cylinder" pos="0 0 {args['motorShaftLength']/2}" size="{p_radius} 0.0025" rgba="{c_red_tail}" mass="0"     fluidshape="none"/>
                 <site name="pulleyRight_{i}" pos="{p_radius * np.cos(theta_l)} {p_radius * np.sin(theta_l)} {args['motorShaftLength']/2+0.005}" size="0.005" rgba="0 0 0 0"/>
@@ -284,7 +374,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
 
     # --- 4. ASSEMBLE XML ---
     XML = f"""
-<mujoco model="SOFI">
+<mujoco model="{model_name}">
     <option gravity="0 0 0" density="{args["fluidDensity"]}" viscosity="{args["fluidViscosity"]}" integrator="implicitfast" timestep="{args["dt"]}" iterations="100" solver="Newton" tolerance="1e-15" ls_tolerance="1e-9" noslip_tolerance="1e-9" o_solimp="0 0.01 0.01 0.1 2">
         <flag contact="disable"/>
     </option>
@@ -320,7 +410,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     </default>
 
     <worldbody>
-        <camera name="overhead" pos="-1.5 0 5" xyaxes="1 0 0 0 1 0"/>
+{overhead_comment}        <camera name="overhead" pos="-1.5 0 5" xyaxes="1 0 0 0 1 0"/>
         <geom name="floor" pos="0 0 -0.2" size="0 0 1" type="plane" material="matplane"/>
         <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
     """
@@ -363,7 +453,7 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
     """
     for i in range(N):
         XML += f"""
-        <position name="motor_{i}" joint="motor_{i}" kp="{args['motor_kp']}" kv="{args['motor_kv']}" ctrllimited="true" ctrlrange="-{np.degrees(args['motor_ctrlrange']):.4f} {np.degrees(args['motor_ctrlrange']):.4f}" forcerange="-{args['motor_forcerange']} {args['motor_forcerange']}"/>
+        <position name="motor_{i}" joint="motor_{i}" kp="{args['motor_kp']}" kv="{args['motor_kv']}" ctrllimited="true" {actuator_ranges}/>
         """
 
     XML += """
@@ -388,5 +478,15 @@ def generate_xml(args, ghost_ids=frozenset(), filename=None):
 
 
 if __name__ == "__main__":
-    generate_xml(SYSTEMPARAMETERS)
-    print(f"XML generated: {SYSTEMPARAMETERS['filename']}")
+    ap = argparse.ArgumentParser(description="Write the SOFI MuJoCo model (see the header of this file).")
+    ap.add_argument("--model", choices=sorted(MODELS), default="default")
+    ap.add_argument("--fit", action="store_true", help="the fluid fit's scene from --config instead of a model")
+    ap.add_argument("--config", default="sysid/fluid/field2sim.yml")
+    a = ap.parse_args()
+    if a.fit:
+        params = copy.deepcopy(SYSTEMPARAMETERS_FIT)
+        generate_fit_xml(params, config_path=a.config)
+    else:
+        params = copy.deepcopy(MODELS[a.model])
+        generate_xml(params)
+    print(f"XML generated: {params['filename']}")
