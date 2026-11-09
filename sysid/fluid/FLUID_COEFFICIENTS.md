@@ -1,6 +1,6 @@
 # Fluid Coefficient Log
 
-A record of notable coefficient sets found during system identification (Step A).
+A record of notable coefficient sets found during the fluid identification.
 Use this to revisit past results before overwriting `field2sim.yml`.
 
 The `coefficients` vector has length 5, 10, or 15 depending on segmentation mode (see `field2sim.yml`).

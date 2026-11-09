@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 import mujoco
 import yaml
 
-XML_PATH    = "geometry/SOFI_twin.xml"
+XML_PATH    = "geometry/_step3_air.xml"      # the identified model without fluid forces (the tail in air), written below
 CONFIG_PATH = "sysid/fluid/field2sim.yml"
 PLOT_DIR    = os.path.join(os.path.dirname(__file__), "plots")
 PASS_TOL    = 0.05   # 5% tolerance on k_eff
@@ -137,6 +137,12 @@ def measure_dynamic_H(model: mujoco.MjModel, freq_hz: float,
 
 def run_sub_test(label: str, density: float, config: dict) -> dict:
     """Run static + dynamic tests with given fluid density."""
+    import copy, sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from geometry.sofi import generate_xml, SYSTEMPARAMETERS
+    # the fit scene's variant (motor joint limited to +-0.6 rad, open actuator range), as this check was always run
+    air = copy.deepcopy(SYSTEMPARAMETERS); air["fluidShape"] = "none"
+    generate_xml(air, filename=XML_PATH, fit_scene=True)
     model = mujoco.MjModel.from_xml_path(XML_PATH)
     model.opt.density = density
 

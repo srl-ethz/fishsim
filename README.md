@@ -38,7 +38,7 @@ Run from the repository root; each one is documented in `docs/`.
 ```bash
 python geometry/sofi.py                                           # 1. build the model (geometry/SOFI.xml; --model motorid for the direct-action one)
 python sysid/tail_stiffness/step1_stiffness.py                   # 2. fit the hinge stiffness and damping to the air sweeps
-python sysid/fluid/opt_field2sim.py <six run dirs> --n_coef 15 --optimizer cma --physics_bounds \
+python sysid/fluid/opt_field2sim.py <six run dirs> --n_coef 15 --physics_bounds \
        --iter 1000 --start_weight 4.0 --random_start --sinusoid_weight 0.4    # 3. fit the 15 fluid coefficients (docs/SYSID.md)
 python sysid/closed_loop/fit_motor.py --joint-damping 0.48 --fix-kv 0         # 3b. identify the motor on the deployment segments (Table "motor")
 python rl/train_rl_curriculum.py --env sofi_full_curriculum_cpg   # 4. train the policy (docs/TRAINING.md; or the W&B sweep)
@@ -67,9 +67,10 @@ and 7 differ by 28 and 25 bytes and render pixel-identical except, in Fig. 5, fo
 simulated trajectory, i.e. floating-point differences of a MuJoCo replay made on another machine. Fig. 8
 differs by 3 bytes: the reach table now lists `finetune_run_4` among the fails (the paper's count), so its
 path is drawn in a different order; where paths overlap, 275 pixels change.
-`geometry/SOFI.xml` and `SOFI_motorid.xml` regenerate byte-identically from their generators, the tail
+`geometry/SOFI.xml` and `SOFI_motorid.xml` regenerate byte-identically from the one generator, the tail
 stiffness fit reproduces k_eff = 0.98 N m/rad, and `sysid/fluid/eval_sysid.py` evaluates the committed E13a
-result on the twelve field runs.
+result on the twelve field runs. The fit scene lost its second, physics-free "ghost" fish in November 2026;
+the per-run losses of E13a are unchanged to five decimals except one run that moved by one unit in the fifth.
 
 ## Credits
 

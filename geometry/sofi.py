@@ -6,8 +6,8 @@
 #   SYSTEMPARAMETERS_MOTORID   the same fish with the later identification from the deployment runs:
 #                              refitB fluid, the identified motor (kp 5.41, rotor inertia, back-EMF as joint
 #                              damping, 2.3 N m)                                            -> SOFI_motorid.xml
-#   SYSTEMPARAMETERS_FIT       the scene of the fluid fit (sysid/fluid), whose coefficients, hinge values
-#                              and motor gains come from field2sim.yml at generation time   -> SOFI_fit.xml
+#   SYSTEMPARAMETERS_FIT       the scene of the fluid fit (sysid/fluid): the same fish, its coefficients, hinge
+#                              values and motor gains read from field2sim.yml at generation time -> SOFI_fit.xml
 #
 #   python geometry/sofi.py                     # SOFI.xml
 #   python geometry/sofi.py --model motorid     # SOFI_motorid.xml
@@ -121,20 +121,20 @@ SYSTEMPARAMETERS_MOTORID.update({
     "motor_ctrlrange_in_degrees": False,
 })
 
-# The scene of the fluid fit: fish 0 is the simulated fish; fish 1, when present, is the transparent
-# "ghost" that follows the measured pose for the eye (no fluid forces, no contacts).
+# The scene of the fluid fit: one fish, replayed with the measured motor angle. (Until November 2026 the
+# scene carried a second, transparent "ghost" fish teleported to the measured pose for the eye; it had no
+# fluid forces and no contacts and never entered the loss, so it is gone. ghost_ids still draws one.)
 SYSTEMPARAMETERS_FIT = copy.deepcopy(SYSTEMPARAMETERS)
-SYSTEMPARAMETERS_FIT.update({"filename": "geometry/SOFI_twin.xml", "numberOfFish": 2})
+SYSTEMPARAMETERS_FIT.update({"filename": "geometry/SOFI_fit.xml", "numberOfFish": 1})
 for _k in ("fluidCoef", "hingeStiffness", "hingeDamping", "motor_ctrlrange", "motor_forcerange"):
     SYSTEMPARAMETERS_FIT.pop(_k)          # these come from the fit's config file (generate_fit_xml)
 
 MODELS = {"default": SYSTEMPARAMETERS, "motorid": SYSTEMPARAMETERS_MOTORID}
 
 
-def generate_fit_xml(args, config_path="sysid/fluid/field2sim.yml", ghost_ids=frozenset({0})):
+def generate_fit_xml(args, config_path="sysid/fluid/field2sim.yml", ghost_ids=frozenset()):
     """The fluid fit's scene: coefficients, hinge values, environment and motor gains from `config_path`
-    (the optimiser writes a temporary copy per candidate), the fish of `ghost_ids` as a transparent
-    reference without physics. Writes args["filename"]."""
+    (the optimiser writes a temporary copy per candidate). Writes args["filename"]."""
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     env = config["environment"]

@@ -47,7 +47,6 @@ import cma
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from geometry.sofi import generate_fit_xml as generate_xml, SYSTEMPARAMETERS_FIT as SYSTEMPARAMETERS
-from sysid.fluid.es_ekf import FishESEKF
 
 plt.rcParams.update({
     "font.size": 7, "pdf.fonttype": 42, "ps.fonttype": 42,
@@ -151,36 +150,25 @@ def get_joint_indices(model, fish_id):
     return qpos_indices, qvel_indices
 
 def simulate_headless(config, xml_path, field_csv, oscillation_weight=0.0, backward_penalty=0.0, start_weight=1.0, sinusoid_override=None):
-    """Run one simulation. If sinusoid_override is provided (dict with amp/freq/phase/offset),
-    Ghost_Alpha is replaced with the fitted sinusoid while ghost positions remain from the CSV."""
+    """Replay one field run through the model at `xml_path` and score it against the measurement.
+
+    The simulated fish's motor angle is set to the measured angle at every step (feed-forward, no
+    controller, nothing couples the fish to the measurement during the run); the loss is its head path
+    against the measured path. If `sinusoid_override` is given (amp/freq/phase/offset), the motor follows
+    the fitted sinusoid instead of the recorded angle; the measured path stays the reference."""
     df = pd.read_csv(field_csv)
-    sync_cfg, sensor_cfg, ekf_cfg = config['synchronization'], config['sensors'], config['ekf_tuning']
-    Kp_pos, Kd_pos = sync_cfg['translation']['stiffness'], sync_cfg['translation']['damping']
-    Kp_yaw, Kd_yaw = sync_cfg['rotation']['stiffness'], sync_cfg['rotation']['damping']
-    Kp_motor = sync_cfg['motor']['stiffness']
-    twin_actuation = config.get('motor', {}).get('twin_actuation', 'measured')
 
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
-    f0_qpos, f0_qvel = get_joint_indices(model, 0)
-    f1_qpos, f1_qvel = get_joint_indices(model, 1)
-
-    ekf = FishESEKF(
-        dt=model.opt.timestep, active_sensors=sensor_cfg['active'],
-        process_noise_std=ekf_cfg['process_noise_std'], sensor_noise_stds=sensor_cfg['noise'],
-        bias_process_noise=ekf_cfg['bias_process_noise'], initial_covariance=ekf_cfg['initial_covariance'],
-    )
+    qpos_idx, qvel_idx = get_joint_indices(model, 0)
     mujoco.mj_forward(model, data)
 
-    active, N = sensor_cfg['active'], len(df)
-    ghost_x, ghost_y, ghost_yaw = np.empty(N), np.empty(N), np.empty(N)
-    twin_x, twin_y, twin_yaw = np.empty(N), np.empty(N), np.empty(N)
-
-    # Store local velocities for backward penalty
-    twin_vx_local = np.empty(N)
+    N = len(df)
+    ghost_x, ghost_y, ghost_yaw = np.empty(N), np.empty(N), np.empty(N)     # the measurement
+    twin_x, twin_y, twin_yaw = np.empty(N), np.empty(N), np.empty(N)        # the simulation
+    twin_vx_local = np.empty(N)                                             # for the backward penalty
 
     dt_sim = model.opt.timestep
-    # Pre-build sinusoid signal if override provided (avoids per-step trig in loop)
     if sinusoid_override is not None:
         so = sinusoid_override
         t_arr = np.arange(N) * dt_sim
@@ -189,81 +177,26 @@ def simulate_headless(config, xml_path, field_csv, oscillation_weight=0.0, backw
     else:
         _sin_alpha = _sin_dalpha = None
 
+    ix, iy, iyaw, imot = qpos_idx[0], qpos_idx[1], qpos_idx[5], qpos_idx[6]
+    vx, vy, vyaw, vmot = qvel_idx[0], qvel_idx[1], qvel_idx[5], qvel_idx[6]
     for i in range(N):
         row = df.iloc[i]
-        ghost_alpha  = _sin_alpha[i]  if _sin_alpha  is not None else row['Ghost_Alpha']
-        ghost_dalpha = _sin_dalpha[i] if _sin_dalpha is not None else row['Ghost_dAlpha']
+        alpha  = _sin_alpha[i]  if _sin_alpha  is not None else row['Ghost_Alpha']
+        dalpha = _sin_dalpha[i] if _sin_dalpha is not None else row['Ghost_dAlpha']
 
-        data.qpos[f0_qpos[0]], data.qpos[f0_qpos[1]] = row['Ghost_X'], row['Ghost_Y']
-        data.qpos[f0_qpos[5]], data.qpos[f0_qpos[6]] = row['Ghost_Yaw'], ghost_alpha
-        data.qvel[f0_qvel[0]], data.qvel[f0_qvel[1]] = row['Ghost_vX'], row['Ghost_vY']
-        data.qvel[f0_qvel[5]], data.qvel[f0_qvel[6]] = row['Ghost_Omega'], ghost_dalpha
+        yaw = data.qpos[iyaw]
+        c, s_ = np.cos(yaw), np.sin(yaw)
+        twin_vx_local[i] = data.qvel[vx] * c + data.qvel[vy] * s_      # forward speed in the body frame
 
-        tw_yaw = data.qpos[f1_qpos[5]]
-        tw_vxg, tw_vyg = data.qvel[f1_qvel[0]], data.qvel[f1_qvel[1]]
-        c, s = np.cos(tw_yaw), np.sin(tw_yaw)
-        
-        # Local forward velocity (MuJoCo X is swim axis)
-        twin_vx_local[i] = tw_vxg * c + tw_vyg * s
-
-        state_old = np.array([
-            tw_yaw, twin_vx_local[i], -tw_vxg*s + tw_vyg*c,
-            data.qvel[f1_qvel[5]], data.qpos[f1_qpos[6]], data.qvel[f1_qvel[6]],
-        ])
-
-        data.ctrl[0] = ghost_alpha
-
-        if twin_actuation == 'teleport':
-            # Directly set motor position — zero tracking error, best for SysID
-            data.qpos[f1_qpos[6]] = ghost_alpha
-            data.qvel[f1_qvel[6]] = ghost_dalpha
-            data.ctrl[1] = ghost_alpha
-        else:
-            # 'measured': high-gain PD tracking of Ghost_Alpha
-            ctrl1 = ghost_alpha + Kp_motor * (ekf.x[4] - data.qpos[f1_qpos[6]])
-            if not np.isfinite(ctrl1): return 1e6, 1e6, 1e6, 1e6
-            data.ctrl[1] = ctrl1
-
-        ekf_vxg, ekf_vyg = ekf.x[1]*c - ekf.x[2]*s, ekf.x[1]*s + ekf.x[2]*c
-        data.qfrc_applied[f1_qvel[0]] = Kd_pos*(ekf_vxg - tw_vxg) + Kp_pos*(ekf.x[9]  - data.qpos[f1_qpos[0]])
-        data.qfrc_applied[f1_qvel[1]] = Kd_pos*(ekf_vyg - tw_vyg) + Kp_pos*(ekf.x[10] - data.qpos[f1_qpos[1]])
-        data.qfrc_applied[f1_qvel[5]] = (
-            Kp_yaw * ((ekf.x[0] - tw_yaw + np.pi) % (2*np.pi) - np.pi)
-            + Kd_yaw * (ekf.x[3] - data.qvel[f1_qvel[5]])
-        )
+        data.qpos[imot] = alpha            # the measured motor angle, set directly
+        data.qvel[vmot] = dalpha
+        data.ctrl[0] = alpha
 
         mujoco.mj_step(model, data)
-        if not all(np.isfinite(data.qpos[idx]) for idx in f1_qpos): return 1e6, 1e6, 1e6, 1e6
-
-        tw_yaw_n = data.qpos[f1_qpos[5]]
-        cn, sn = np.cos(tw_yaw_n), np.sin(tw_yaw_n)
-        state_new = np.array([
-            tw_yaw_n,
-            data.qvel[f1_qvel[0]]*cn + data.qvel[f1_qvel[1]]*sn,
-            -data.qvel[f1_qvel[0]]*sn + data.qvel[f1_qvel[1]]*cn,
-            data.qvel[f1_qvel[5]], data.qpos[f1_qpos[6]], data.qvel[f1_qvel[6]],
-        ])
-        delta = state_new - state_old
-        delta[0] = (delta[0] + np.pi) % (2*np.pi) - np.pi
-        delta[4] = (delta[4] + np.pi) % (2*np.pi) - np.pi
-        ekf.predict(delta)
-
-        z = {}
-        if row['Vision_Update']:
-            if 'global_position' in active: z['global_position'] = [row['Meas_X'], row['Meas_Y']]
-            if 'heading' in active: z['heading'] = row['Meas_Yaw']
-        if row['IMU_Update']:
-            if 'motor_encoder' in active: z['motor_encoder'] = [row['Meas_Alpha'], ghost_dalpha]
-            if 'imu' in active: z['imu'] = [0.0, 0.0, row['Meas_GyrZ']]
-        if z:
-            if 'imu' in active and 'imu' not in z: z['imu'] = [0.0, 0.0, ekf.x[3] + ekf.x[8]]
-            if 'motor_encoder' in active and 'motor_encoder' not in z: z['motor_encoder'] = [ekf.x[4], ekf.x[5]]
-            if 'global_position' in active and 'global_position' not in z: z['global_position'] = [ekf.x[9], ekf.x[10]]
-            if 'heading' in active and 'heading' not in z: z['heading'] = ekf.x[0]
-            ekf.update(z, data.sensordata[6:8])
+        if not all(np.isfinite(data.qpos[idx]) for idx in qpos_idx): return 1e6, 1e6, 1e6, 1e6
 
         ghost_x[i], ghost_y[i], ghost_yaw[i] = row['Ghost_X'], row['Ghost_Y'], row['Ghost_Yaw']
-        twin_x[i], twin_y[i], twin_yaw[i] = data.qpos[f1_qpos[0]], data.qpos[f1_qpos[1]], tw_yaw_n
+        twin_x[i], twin_y[i], twin_yaw[i] = data.qpos[ix], data.qpos[iy], data.qpos[iyaw]
 
     # Time-weighted position MSE: exponential decay from start_weight→1.0 over the run.
     # Prevents "swim-backward-then-sprint" exploit: early position errors count more,
@@ -469,16 +402,11 @@ def main():
     field_csvs = [os.path.join(rd, "processed", "03_field2sim_ready.csv") for rd in args.run_dirs]
     with open(args.config, 'r') as f: base_config = yaml.safe_load(f)
 
-    sync_cfg = base_config.get('synchronization', {})
-    ky = sync_cfg.get('rotation', {}).get('stiffness', 0)
     print(f"\n{'='*62}")
     print(f"  Optimizer      : CMA-ES")
     print(f"  Coefficients   : {args.n_coef}  ({' | '.join(_SEG_NAMES[args.n_coef])})")
     print(f"  Training runs  : {len(field_csvs)}")
-    print(f"  Motor mode     : {base_config.get('motor', {}).get('twin_actuation', 'measured')}")
-    print(f"  Kp_yaw         : {ky}")
-    if ky > 0:
-        print("  ! WARNING: Kp_yaw > 0. Set rotation.stiffness=0 for SysID.")
+    print(f"  Replay         : measured motor angle set directly, no controller, no coupling to the measurement")
     print(f"  Weights        : yaw={args.yaw_weight}, osc={args.oscillation_weight}, back={args.backward_penalty}, start_weight={args.start_weight}, sinusoid={args.sinusoid_weight}")
     print(f"{'='*62}\n")
 

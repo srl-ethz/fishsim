@@ -43,7 +43,7 @@ python sysid/fluid/opt_field2sim.py \
     ../fishdeploy/data/01_field_openloop_20260401/run_10_4.0Hz_7.0mm \
     ../fishdeploy/data/01_field_openloop_20260401/run_11_2.0Hz_12.0mm \
     ../fishdeploy/data/01_field_openloop_20260401/run_09_2.0Hz_6.0mm_-3.0mm \
-    --n_coef 15 --optimizer cma --physics_bounds --iter 1000 \
+    --n_coef 15 --physics_bounds --iter 1000 \
     --start_weight 4.0 --random_start --sinusoid_weight 0.4
 python sysid/fluid/eval_sysid.py       # E13a (sysid/fluid/results/E13a.yml) on the held-out runs 1, 2, 5, 6, 8, 12; the twin is ~13 % slow straight, ~7 % fast in turns
 ```

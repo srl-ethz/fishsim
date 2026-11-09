@@ -114,18 +114,16 @@ def collect_trajectories(csv_path, base_config, coef, sinusoid_override=None):
     """
     Simulate one run. Returns (times, ghost_xy, twin_xy, wpos_loss).
 
-    SysID Step A: teleport actuation, zero coupling (no EKF needed).
-    ghost_xy: always real CSV positions (the real fish).
-    twin_xy: simulated physics.
-    sinusoid_override: if provided, both ghost motor AND twin motor are driven by the
-        fitted sinusoid instead of the recorded Ghost_Alpha.  Ghost X/Y/Yaw are always real.
+    The motor angle is set to the measured one at every step; nothing else couples the simulated fish to
+    the measurement. ghost_xy: the measured positions from the CSV. twin_xy: the simulated head path.
+    sinusoid_override: if provided, the motor follows the fitted sinusoid instead of the recorded angle;
+        the measured path stays the reference.
     """
     _make_xml(coef, base_config)
     df = pd.read_csv(csv_path)
     model = mujoco.MjModel.from_xml_path(_TMP_XML)
     data  = mujoco.MjData(model)
-    f0_qp, f0_qv = _get_joint_indices(model, 0)
-    f1_qp, f1_qv = _get_joint_indices(model, 1)
+    f1_qp, f1_qv = _get_joint_indices(model, 0)
     mujoco.mj_forward(model, data)
 
     N, dt = len(df), model.opt.timestep
@@ -145,17 +143,10 @@ def collect_trajectories(csv_path, base_config, coef, sinusoid_override=None):
         g_alpha  = _sa[i]  if _sa  is not None else row['Ghost_Alpha']
         g_dalpha = _sda[i] if _sda is not None else row['Ghost_dAlpha']
 
-        # Teleport ghost to real position, sinusoid/real motor
-        data.qpos[f0_qp[0]], data.qpos[f0_qp[1]] = row['Ghost_X'],    row['Ghost_Y']
-        data.qpos[f0_qp[5]], data.qpos[f0_qp[6]] = row['Ghost_Yaw'],  g_alpha
-        data.qvel[f0_qv[0]], data.qvel[f0_qv[1]] = row['Ghost_vX'],   row['Ghost_vY']
-        data.qvel[f0_qv[5]], data.qvel[f0_qv[6]] = row['Ghost_Omega'], g_dalpha
-
-        # Twin: teleport motor, let physics run freely (stiffness=0)
+        # the measured motor angle, set directly; the rest of the fish follows the physics
         data.qpos[f1_qp[6]] = g_alpha
         data.qvel[f1_qv[6]] = g_dalpha
         data.ctrl[0] = g_alpha
-        data.ctrl[1] = g_alpha
 
         mujoco.mj_step(model, data)
         ghost_xy[i] = [row['Ghost_X'], row['Ghost_Y']]
@@ -173,15 +164,12 @@ def collect_trajectories(csv_path, base_config, coef, sinusoid_override=None):
 
 def simulate_free_twin(base_config, coef, amp, freq, offset, duration=10.0):
     """
-    Free-swim a single twin fish with sinusoidal motor teleport.  No CSV needed.
-    Fish 0 (ghost) is pinned at origin; fish 1 (twin) swims freely.
-    Returns (times, twin_xy).
+    Free-swim the fish with a sinusoidal motor angle set directly. No CSV needed. Returns (times, twin_xy).
     """
     _make_xml(coef, base_config)
     model = mujoco.MjModel.from_xml_path(_TMP_XML)
     data  = mujoco.MjData(model)
-    f0_qp, f0_qv = _get_joint_indices(model, 0)
-    f1_qp, f1_qv = _get_joint_indices(model, 1)
+    f1_qp, f1_qv = _get_joint_indices(model, 0)
     mujoco.mj_forward(model, data)
 
     dt   = model.opt.timestep
@@ -194,20 +182,9 @@ def simulate_free_twin(base_config, coef, amp, freq, offset, duration=10.0):
         alpha  = amp * np.sin(2 * np.pi * freq * t) + offset
         dalpha = amp * 2 * np.pi * freq * np.cos(2 * np.pi * freq * t)
 
-        # Ghost pinned at origin
-        data.qpos[f0_qp[0]] = 0.0
-        data.qpos[f0_qp[1]] = 0.0
-        data.qpos[f0_qp[5]] = 0.0   # yaw
-        data.qpos[f0_qp[6]] = alpha
-        data.qvel[f0_qv[0]] = 0.0
-        data.qvel[f0_qv[1]] = 0.0
-        data.qvel[f0_qv[6]] = dalpha
-
-        # Twin motor teleport
         data.qpos[f1_qp[6]] = alpha
         data.qvel[f1_qv[6]] = dalpha
         data.ctrl[0] = alpha
-        data.ctrl[1] = alpha
 
         mujoco.mj_step(model, data)
         twin_xy[i] = [data.qpos[f1_qp[0]], data.qpos[f1_qp[1]]]
@@ -342,7 +319,7 @@ def plot_per_run_loss_bar(train_results, sin_results, test_results, out_path):
 
 
 def plot_freeswim_grid(results, title, out_path):
-    """Twin-only free-swim trajectories (no ghost reference)."""
+    """Free-swim trajectories (no measurement to compare with)."""
     n = len(results)
     if n == 0:
         print(f"  (no results for: {title})"); return
