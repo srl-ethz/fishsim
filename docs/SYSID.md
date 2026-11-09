@@ -62,21 +62,21 @@ E13) with what changed between them. Paper Fig. 5 (`paper/fig5_fluidfit.py`) rep
 held-out runs through this model.
 
 The direct-action model (`geometry/sofi_motorid.py`) uses a later refit, **refitB**, made on the
-closed-loop deployment runs with a windowed multiple-shooting loss (the pipeline was not kept public; its
-results are in the archive, `05_fluid_identification/closed_loop_refit/`). A further refit after correcting
-the centre of mass (refitC) did not lower the fin coefficients, which is the evidence in the paper that the
-inflated fin terms stand in for unsteady thrust rather than for a mass error (`docs/com_frame_bug.md`).
+closed-loop deployment runs with a windowed multiple-shooting loss (the original pipeline lived in a private workspace; its
+results are in the archive, `05_fluid_identification/closed_loop_refit/`); section 3 below has the public
+version of that fit.
 
 ## 3. The closed-loop fits: the direct-action fluid set and the motor
 
 Input: `fishdeploy/data/02_deploy_20260520/canonical/`, 18 segments of the deployment runs curated by hand
 (the manifest `layer2_parts.yml` says which run and which [t_start, t_end]), each resampled to 1 kHz with
 the fish pose from a re-detection of the overhead video and the motor from the Pi log
-(fishdeploy `analysis/canonical/convert_segments.py`).
+(fishdeploy `analysis/canonical/convert_segments.py`). Segment file names are the manifest's run names reduced to
+letters, digits and underscores (`canonical.slug`).
 
 ```bash
 python sysid/closed_loop/fit_motor.py --joint-damping 0.48 --fix-kv 0     # the identified motor (paper Table "motor")
-python sysid/closed_loop/refit_fluid.py --train "006_Normal Run__p1" ... --val "002_Relief__p1" ... \
+python sysid/closed_loop/refit_fluid.py --train 006_Normal_Run__p1 ... --val 002_Relief__p1 ... \
        --iter 400 --backward_penalty 5.0                                   # the refitB fluid set of geometry/sofi_motorid.py
 ```
 

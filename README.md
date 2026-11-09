@@ -16,7 +16,7 @@ learning, and the paper's figures. The hardware, the field tests and the measure
  tail sweeps in air  ──► sysid/tail_stiffness ──► hinge k, d ─┐
                                                               ├─► geometry/sofi.py ─► SOFI.xml ─► rl/ (SAC, CPG actions, curriculum) ─► policies/sofi_cpg_rl_policy.zip ─► deploy/
  12 open-loop pool runs ─► sysid/fluid (ghost/twin, CMA-ES) ─► 15 fluid coefficients ─┘                                                                                    │
-                                                                                                                              43 closed-loop runs ◄──────────────────────────┘
+                                                                                                                              45 closed-loop runs ◄──────────────────────────┘
                                                                                                                                         │
                                                                                                                    paper/ (the ten figures) ◄─┘
 ```
@@ -31,13 +31,13 @@ git clone https://github.com/Ramchi99/fishdeploy ../fishdeploy
 Python 3.11, MuJoCo 3.3.1, Stable-Baselines3 2.6.0. The paper figures also need LaTeX with `dvipng`
 (matplotlib `usetex`), and Inkscape or Chrome/Edge for the three SVG figures.
 
-## The five commands
+## The commands
 
-Run from the repository root.
+Run from the repository root; each one is documented in `docs/`.
 
 ```bash
 python geometry/sofi.py                                  # 1. build the model (geometry/SOFI.xml)
-python sysid/tail_stiffness/step1_stiffness.py                    # 2. fit the hinge stiffness and damping to the air sweeps
+python sysid/tail_stiffness/step1_stiffness.py                   # 2. fit the hinge stiffness and damping to the air sweeps
 python sysid/fluid/opt_field2sim.py <six run dirs> --n_coef 15 --optimizer cma --physics_bounds \
        --iter 1000 --start_weight 4.0 --random_start --sinusoid_weight 0.4    # 3. fit the 15 fluid coefficients (docs/SYSID.md)
 python sysid/closed_loop/fit_motor.py --joint-damping 0.48 --fix-kv 0         # 3b. identify the motor on the deployment segments (Table "motor")
@@ -59,9 +59,9 @@ make -C paper figures check                                       # 5. rebuild t
 
 ## Reproducibility status
 
-Rebuilt from a clean clone of this branch and of fishdeploy on 2026-10-28 and compared with the PDFs as
-submitted (`make -C paper check`): every figure matches in text; five of the ten also match in byte size.
-Figs 1 to 3 differ by one or two bytes of font metadata because the reference PDFs were printed by Chrome 152
+Rebuilt from clean clones of this branch and of fishdeploy on 2026-11-09 and compared with the PDFs as
+submitted (`make -C paper check`): every figure matches in text; four of the ten also match in byte size.
+Figs 1 to 3 differ by one to five bytes of font metadata because the reference PDFs were printed by Chrome 152
 and today's Chrome 156 writes its font descriptors differently (their SVG sources are byte-identical). Figs 5
 and 7 differ by 28 and 25 bytes and render pixel-identical except, in Fig. 5, for sub-pixel shifts along the
 simulated trajectory, i.e. floating-point differences of a MuJoCo replay made on another machine. Fig. 8
