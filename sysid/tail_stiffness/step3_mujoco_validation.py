@@ -144,6 +144,7 @@ def run_sub_test(label: str, density: float, config: dict) -> dict:
     air = copy.deepcopy(SYSTEMPARAMETERS); air["fluidShape"] = "none"
     generate_xml(air, filename=XML_PATH, fit_scene=True)
     model = mujoco.MjModel.from_xml_path(XML_PATH)
+    os.remove(XML_PATH)                             # the scene is derived; nothing else reads it
     model.opt.density = density
 
     k_static = measure_keff_static(model, fish_id=0)

@@ -45,7 +45,7 @@ def fluid_semiaxes(model, g):
 
 
 def build_model():
-    xml = os.path.join(FISHCREATE, "geometry", "_hull_fig_tmp.xml")
+    xml = str(_REPO / "geometry" / "_hull_fig_tmp.xml")
     gen.generate_xml(gen.SYSTEMPARAMETERS_MOTORID, filename=xml)
     model = mujoco.MjModel.from_xml_path(xml); data = mujoco.MjData(model)
     os.remove(xml)
